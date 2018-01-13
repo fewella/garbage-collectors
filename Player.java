@@ -3,31 +3,53 @@
 import bc.*;
 
 public class Player {
-   static Direction[] dirs = Direction.values();
+    static Direction[] dirs  = Direction.values();
+
+    //map analysis global variables
+    //feel free to use them
+    static GameController gc;
+    static PlanetMap map;
+    static short[][] passabilityMat;
+    static long[][] karboniteMat;   //only on Earth
+    static MapLocation baseLocation;    //only on Earth
+
     public static void main(String[] args) {
-        // MapLocation is a data structure you'll use a lot.
-        MapLocation loc = new MapLocation(Planet.Earth, 10, 20);
-        System.out.println("loc: "+loc+", one step to the Northwest: "+loc.add(Direction.Northwest));
-        System.out.println("loc x: "+loc.getX());
+        try {
+            //connect to the manager, starting the game
+            gc = new GameController();
 
-        // One slightly weird thing: some methods are currently static methods on a static class called bc.
-        // This will eventually be fixed :/
-        System.out.println("Opposite of " + Direction.North + ": " + bc.bcDirectionOpposite(Direction.North));
+            //map analysis
+            map = gc.startingMap(gc.planet());
+            passabilityMat = MapAnalysis.passabilityMat(map);
+            if (map.getPlanet() == Planet.Earth) {
+                karboniteMat = MapAnalysis.karboniteMat(map);
+                Convolver c4 = new Convolver(4);
+                baseLocation = MapAnalysis.baseLocation(MapAnalysis.opennnesMat(passabilityMat, c4), map.getPlanet(), map.getInitial_units());
+                System.out.print(baseLocation.getX() + " " + baseLocation.getY());
+            }
 
-        // Connect to the manager, starting the game
-        GameController gc = new GameController();
-
-        // Direction is a normal java enum.
-        
-        gc.queueResearch(UnitType.Ranger);
-        gc.queueResearch(UnitType.Ranger);
-        gc.queueResearch(UnitType.Worker);
-        gc.queueResearch(UnitType.Rocket);
-        gc.queueResearch(UnitType.Ranger);
+            //queue research
+            gc.queueResearch(UnitType.Ranger);
+            gc.queueResearch(UnitType.Ranger);
+            gc.queueResearch(UnitType.Worker);
+            gc.queueResearch(UnitType.Rocket);
+            gc.queueResearch(UnitType.Ranger);
+        }
+        catch(Exception e){
+            System.out.println("Exception during setup");
+            e.printStackTrace();
+        }
         while (true) {
-            Econ.turn(gc);
-            
-            gc.nextTurn();
+            try{
+                //game cycle
+                Econ.turn(gc);
+
+                gc.nextTurn();
+            }
+            catch(Exception e){
+                System.out.println("Exception during game");
+                e.printStackTrace();
+            }
         }
     }
 }
