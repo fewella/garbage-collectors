@@ -7,19 +7,15 @@ import java.util.PriorityQueue;
 public class Player {
     static Direction[] dirs  = Direction.values();
 
-    //map analysis global variables
-    //feel free to use them
+    //global variables
     static GameController gc;
     static PlanetMap map;
-    static short[][] passabilityMat;
-    static long[][] karboniteMat;   //only on Earth
-    static MapLocation baseLocation;    //only on Earth
-    static PriorityQueue<Tuple<MapLocation, Integer>> baseFactoryQueue; //only on Earth
 
     public static void main(String[] args) {
         try {
             //connect to the manager, starting the game
             gc = new GameController();
+            map = gc.startingMap(gc.planet());
 
             //map analysis
             MapAnalysis.setup();

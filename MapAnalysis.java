@@ -17,6 +17,20 @@ class MapAnalysis {
     //Asteroid pattern analysis
     //First factory placement (for fast rollout)
 
+    //issues:
+    //If workers aren't all on one side of the map, the initial base placement will be next to the center
+    //Initial base placement does not look at karbonite
+
+    //map analysis public variables
+    //feel free to use them
+    static short[][] passabilityMat;
+    //Earth only
+    static long[][] karboniteMat;
+    static long karboniteTotal;
+    static MapLocation baseLocation;
+    static PriorityQueue<Tuple<MapLocation, Integer>> factoryQueue;
+
+    private static short[][][] karbonite3dMat;  //Mars only (should take .5 MB max)
     private static short[][] smallBase =
         {{1, 1, 0, 1, 1},
         {1, 1, 0, 1, 1},
@@ -25,16 +39,15 @@ class MapAnalysis {
         {1, 1, 0, 1, 1}};
 
     public static void setup(){
-        Player.map = Player.gc.startingMap(Player.gc.planet());
-        Player.passabilityMat = passabilityMat();
+        passabilityMat();
         if (Player.map.getPlanet() == Planet.Earth) {
-            Player.karboniteMat = karboniteMat();
+            karboniteMat();
 
             Convolver c4 = new Convolver(4);
-            Player.baseLocation = baseLocation(opennnesMat(c4));
-            System.out.println("Base location: " + Player.baseLocation.getX() + ", " + Player.baseLocation.getY());
+            baseLocation(opennnesMat(c4));
+            System.out.println("Base location: " + baseLocation.getX() + ", " + baseLocation.getY());
 
-            Player.baseFactoryQueue = baseFactoryQueue(Player.baseLocation, smallBase, Player.passabilityMat, Player.karboniteMat);
+            baseFactoryQueue(baseLocation, smallBase);
         }
     }
     //call this before sending a rocket
@@ -48,7 +61,7 @@ class MapAnalysis {
         return null;
     }
 
-    private static short[][] passabilityMat(){
+    private static void passabilityMat(){
         //same outputs as PlanetMap.isPassableTerrainAt
         short[][] out = new short[(int)Player.map.getHeight()][(int)Player.map.getWidth()];
         for(int y = 0; y < Player.map.getHeight(); y++){
@@ -56,26 +69,31 @@ class MapAnalysis {
                 out[y][x] = Player.map.isPassableTerrainAt(new MapLocation(Player.map.getPlanet(), x, y));
             }
         }
-        return out;
+        passabilityMat = out;
     }
-    private static long[][] karboniteMat(){
+    private static void karboniteMat(){
         //same outputs as PlanetMap.initialKarboniteAt
         long[][] out = new long[(int)Player.map.getHeight()][(int)Player.map.getWidth()];
+        long total = 0;
         for(int y = 0; y < Player.map.getHeight(); y++){
             for(int x = 0; x < Player.map.getWidth(); x++){
-                out[y][x] = Player.map.initialKarboniteAt(new MapLocation(Player.map.getPlanet(), x, y));
+                long karb = Player.map.initialKarboniteAt(new MapLocation(Player.map.getPlanet(), x, y));
+                out[y][x] = karb;
+                total += karb;
             }
         }
-        return out;
+        karboniteMat = out;
+        karboniteTotal = total;
+        System.out.println("Earth total karbonite: " + total);
     }
     private static int[][] opennnesMat(Convolver c4){
         //0 is completely occupied
         //255 is completely open
         c4.setRadius(4);
-        return c4.blur(Player.passabilityMat);
+        return c4.blur(passabilityMat);
     }
 
-    private static MapLocation baseLocation(int[][] opennessMat){
+    private static void baseLocation(int[][] opennessMat){
         //Returns suitable location for a base
         //Based on available space and distance from initial workers
         double max = 0;
@@ -110,9 +128,9 @@ class MapAnalysis {
                 }
             }
         }
-        return new MapLocation(Player.map.getPlanet(), maxX, maxY);
+        baseLocation = new MapLocation(Player.map.getPlanet(), maxX, maxY);
     }
-    private static PriorityQueue<Tuple<MapLocation, Integer>> baseFactoryQueue(MapLocation baseLocation, short[][] baseMat, short[][] passabilityMat, long[][] karboniteMat){
+    private static void baseFactoryQueue(MapLocation baseLocation, short[][] baseMat){
         //Returns a priorityQueue of locations to build factories
         //Priority based on distance to center and lost Karbonite
         //Locations guaranteed to be valid
@@ -132,7 +150,7 @@ class MapAnalysis {
                 }
             }
         }
-        return pq;
+        factoryQueue = pq;
     }
 }
 
