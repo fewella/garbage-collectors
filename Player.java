@@ -25,7 +25,7 @@ public class Player {
                 karboniteMat = MapAnalysis.karboniteMat(map);
                 Convolver c4 = new Convolver(4);
                 baseLocation = MapAnalysis.baseLocation(MapAnalysis.opennnesMat(passabilityMat, c4), map.getPlanet(), map.getInitial_units());
-                System.out.print(baseLocation.getX() + " " + baseLocation.getY());
+                System.out.println("Base location: " + baseLocation.getX() + ", " + baseLocation.getY());
             }
 
             //queue research
