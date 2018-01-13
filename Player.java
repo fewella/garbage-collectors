@@ -2,6 +2,8 @@
 // See xxx for the javadocs.
 import bc.*;
 
+import java.util.PriorityQueue;
+
 public class Player {
     static Direction[] dirs  = Direction.values();
 
@@ -12,6 +14,7 @@ public class Player {
     static short[][] passabilityMat;
     static long[][] karboniteMat;   //only on Earth
     static MapLocation baseLocation;    //only on Earth
+    static PriorityQueue<Tuple<MapLocation, Integer>> baseFactoryQueue; //only on Earth
 
     public static void main(String[] args) {
         try {
@@ -23,9 +26,12 @@ public class Player {
             passabilityMat = MapAnalysis.passabilityMat(map);
             if (map.getPlanet() == Planet.Earth) {
                 karboniteMat = MapAnalysis.karboniteMat(map);
+
                 Convolver c4 = new Convolver(4);
-                baseLocation = MapAnalysis.baseLocation(MapAnalysis.opennnesMat(passabilityMat, c4), map.getPlanet(), map.getInitial_units());
+                baseLocation = MapAnalysis.baseLocation(MapAnalysis.opennnesMat(passabilityMat, c4), map.getPlanet(), gc.team(), map.getInitial_units());
                 System.out.println("Base location: " + baseLocation.getX() + ", " + baseLocation.getY());
+
+                baseFactoryQueue = MapAnalysis.baseFactoryQueue(baseLocation, MapAnalysis.smallBase, passabilityMat, karboniteMat);
             }
 
             //queue research

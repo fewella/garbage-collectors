@@ -2,6 +2,8 @@
 // See xxx for the javadocs.
 import bc.*;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.PriorityQueue;
 
 class MapAnalysis {
@@ -44,26 +46,32 @@ class MapAnalysis {
         return c4.blur(passabilityMap);
     }
 
-    public static MapLocation baseLocation(int[][] opennessMat, Planet planet, VecUnit workers){
-        //WIP
+    public static MapLocation baseLocation(int[][] opennessMat, Planet planet, Team team, VecUnit workers){
+        //Returns suitable location for a base
+        //Based on available space and distance from initial workers
         double max = 0;
         int maxX = 0;
         int maxY = 0;
-        MapLocation workerLocs[] = new MapLocation[(int)workers.size()];
+        ArrayList<MapLocation> workerLocs = new ArrayList<>();
         for(int i = 0; i < workers.size(); i++){
-            workerLocs[i] = workers.get(i).location().mapLocation();
+            Unit worker = workers.get(i);
+            if(worker.team() == team) {
+                workerLocs.add(worker.location().mapLocation());
+            }
         }
         for(int y = 0; y < opennessMat.length; y++){
             for(int x = 0; x < opennessMat[0].length; x++){
                 //weight:
-                //openness +255
-                //distance -50
+                //openness +[0, 255]   +openness
+                //distance -[0, 100]   -5*linear_dist, 30 blocks = -150, caps at -150
                 MapLocation loc = new MapLocation(planet, x, y);
                 double val = 0;
                 for(MapLocation workerLoc : workerLocs){
-                    val += Math.sqrt(workerLoc.distanceSquaredTo(loc));
+                    val -= Math.sqrt(workerLoc.distanceSquaredTo(loc));
                 }
-                val /= workerLocs.length;
+                val /= workerLocs.size();
+                val = Math.max(-30, val);
+                val *= 5;
                 val += opennessMat[y][x];
                 if(val > max){
                     max = val;
@@ -74,25 +82,27 @@ class MapAnalysis {
         }
         return new MapLocation(planet, maxX, maxY);
     }
-    public static PriorityQueue<MapLocation> baseFactoryQueue(MapLocation baseLocation, short[][] baseMat, short[][] passabilityMat, long[][] karboniteMat){
+    public static PriorityQueue<Tuple<MapLocation, Integer>> baseFactoryQueue(MapLocation baseLocation, short[][] baseMat, short[][] passabilityMat, long[][] karboniteMat){
         //Returns a priorityQueue of locations to build factories
         //Priority based on distance to center and lost Karbonite
         //Locations guaranteed to be valid
 
-        PriorityQueue<MapLocation> pq = new PriorityQueue<>();
+        PriorityQueue<Tuple<MapLocation, Integer>> pq = new PriorityQueue<>(16, new mapLocationComparator());
 
-        int rx = (baseMat[0].length+1) / 2;
-        int ry = (baseMat.length+1) / 2;
+        int xtemp = baseLocation.getX()-baseMat[0].length/2;
+        int ytemp = baseLocation.getY()-baseMat.length/2;
 
-        for(int y = baseLocation.getY()-ry; y <= baseLocation.getY()+ry; y++){
-            for(int x = baseLocation.getX()-rx; x <= baseLocation.getX()+rx; x++){
-                if(baseMat[y][x] == 1){
+        for(int yi = 0; yi < baseMat.length; yi++){
+            for(int xi = 0; xi < baseMat[0].length; xi++){
+                int x = xtemp+xi;
+                int y = ytemp+yi;
+                if(baseMat[yi][xi]==1 && x>=0 && y>=0 && x<passabilityMat[0].length && y<passabilityMat.length && passabilityMat[y][x]==1){
                     MapLocation loc = new MapLocation(baseLocation.getPlanet(), x, y);
-                    pq.add(loc/*, loc.distanceSquaredTo(baseLocation)+1*/);
+                    pq.add(new Tuple<>(loc, (int)(5*Math.sqrt(loc.distanceSquaredTo(baseLocation)))+(int)karboniteMat[y][x]));
                 }
             }
         }
-        return null;
+        return pq;
     }
 }
 
@@ -184,5 +194,21 @@ class Convolver{
             yi++;
         }
         return img3;
+    }
+}
+
+//https://stackoverflow.com/questions/2670982/using-pairs-or-2-tuples-in-java
+class Tuple<X, Y> {
+    public final X x;
+    public final Y y;
+    public Tuple(X x, Y y) {
+        this.x = x;
+        this.y = y;
+    }
+}
+
+class mapLocationComparator implements Comparator<Tuple<MapLocation, Integer>> {
+    public int compare(Tuple<MapLocation, Integer> a, Tuple<MapLocation, Integer> b){
+        return a.y - b.y;
     }
 }
