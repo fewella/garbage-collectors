@@ -22,17 +22,7 @@ public class Player {
             gc = new GameController();
 
             //map analysis
-            map = gc.startingMap(gc.planet());
-            passabilityMat = MapAnalysis.passabilityMat(map);
-            if (map.getPlanet() == Planet.Earth) {
-                karboniteMat = MapAnalysis.karboniteMat(map);
-
-                Convolver c4 = new Convolver(4);
-                baseLocation = MapAnalysis.baseLocation(MapAnalysis.opennnesMat(passabilityMat, c4), map.getPlanet(), gc.team(), map.getInitial_units());
-                System.out.println("Base location: " + baseLocation.getX() + ", " + baseLocation.getY());
-
-                baseFactoryQueue = MapAnalysis.baseFactoryQueue(baseLocation, MapAnalysis.smallBase, passabilityMat, karboniteMat);
-            }
+            MapAnalysis.setup();
 
             //queue research
             gc.queueResearch(UnitType.Ranger);

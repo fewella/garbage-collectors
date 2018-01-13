@@ -12,50 +12,80 @@ class MapAnalysis {
     //y increases upwards (northward)
     //x increases to the right (eastward)
 
-    public static short[][] smallBase =
-    {{1, 1, 0, 1, 1},
-    {1, 1, 0, 1, 1},
-    {0, 0, 0, 0, 0},
-    {1, 1, 0, 1, 1},
-    {1, 1, 0, 1, 1}};
+    //TODO: (if you want me to do something, you can add it here)
+    //Rocket landing locations
+    //Asteroid pattern analysis
+    //First factory placement (for fast rollout)
 
-    public static short[][] passabilityMat(PlanetMap map){
+    private static short[][] smallBase =
+        {{1, 1, 0, 1, 1},
+        {1, 1, 0, 1, 1},
+        {0, 0, 0, 0, 0},
+        {1, 1, 0, 1, 1},
+        {1, 1, 0, 1, 1}};
+
+    public static void setup(){
+        Player.map = Player.gc.startingMap(Player.gc.planet());
+        Player.passabilityMat = passabilityMat();
+        if (Player.map.getPlanet() == Planet.Earth) {
+            Player.karboniteMat = karboniteMat();
+
+            Convolver c4 = new Convolver(4);
+            Player.baseLocation = baseLocation(opennnesMat(c4));
+            System.out.println("Base location: " + Player.baseLocation.getX() + ", " + Player.baseLocation.getY());
+
+            Player.baseFactoryQueue = baseFactoryQueue(Player.baseLocation, smallBase, Player.passabilityMat, Player.karboniteMat);
+        }
+    }
+    //call this before sending a rocket
+    public static MapLocation rocketTarget(double aggressiveness){
+        //returns a most suitable rocket landing location
+        //aggressiveness:
+        //0: send to a safe location next to friendly units
+        //1: bombard enemy base
+
+        //TODO
+        return null;
+    }
+
+    private static short[][] passabilityMat(){
         //same outputs as PlanetMap.isPassableTerrainAt
-        short[][] out = new short[(int)map.getHeight()][(int)map.getWidth()];
-        for(int y = 0; y < map.getHeight(); y++){
-            for(int x = 0; x < map.getWidth(); x++){
-                out[y][x] = map.isPassableTerrainAt(new MapLocation(map.getPlanet(), x, y));
+        short[][] out = new short[(int)Player.map.getHeight()][(int)Player.map.getWidth()];
+        for(int y = 0; y < Player.map.getHeight(); y++){
+            for(int x = 0; x < Player.map.getWidth(); x++){
+                out[y][x] = Player.map.isPassableTerrainAt(new MapLocation(Player.map.getPlanet(), x, y));
             }
         }
         return out;
     }
-    public static long[][] karboniteMat(PlanetMap map){
+    private static long[][] karboniteMat(){
         //same outputs as PlanetMap.initialKarboniteAt
-        long[][] out = new long[(int)map.getHeight()][(int)map.getWidth()];
-        for(int y = 0; y < map.getHeight(); y++){
-            for(int x = 0; x < map.getWidth(); x++){
-                out[y][x] = map.initialKarboniteAt(new MapLocation(map.getPlanet(), x, y));
+        long[][] out = new long[(int)Player.map.getHeight()][(int)Player.map.getWidth()];
+        for(int y = 0; y < Player.map.getHeight(); y++){
+            for(int x = 0; x < Player.map.getWidth(); x++){
+                out[y][x] = Player.map.initialKarboniteAt(new MapLocation(Player.map.getPlanet(), x, y));
             }
         }
         return out;
     }
-    public static int[][] opennnesMat(short[][] passabilityMap, Convolver c4){
+    private static int[][] opennnesMat(Convolver c4){
         //0 is completely occupied
         //255 is completely open
         c4.setRadius(4);
-        return c4.blur(passabilityMap);
+        return c4.blur(Player.passabilityMat);
     }
 
-    public static MapLocation baseLocation(int[][] opennessMat, Planet planet, Team team, VecUnit workers){
+    private static MapLocation baseLocation(int[][] opennessMat){
         //Returns suitable location for a base
         //Based on available space and distance from initial workers
         double max = 0;
         int maxX = 0;
         int maxY = 0;
+        VecUnit workers = Player.map.getInitial_units();
         ArrayList<MapLocation> workerLocs = new ArrayList<>();
         for(int i = 0; i < workers.size(); i++){
             Unit worker = workers.get(i);
-            if(worker.team() == team) {
+            if(worker.team() == Player.gc.team()) {
                 workerLocs.add(worker.location().mapLocation());
             }
         }
@@ -64,7 +94,7 @@ class MapAnalysis {
                 //weight:
                 //openness +[0, 255]   +openness
                 //distance -[0, 100]   -5*linear_dist, 30 blocks = -150, caps at -150
-                MapLocation loc = new MapLocation(planet, x, y);
+                MapLocation loc = new MapLocation(Player.map.getPlanet(), x, y);
                 double val = 0;
                 for(MapLocation workerLoc : workerLocs){
                     val -= Math.sqrt(workerLoc.distanceSquaredTo(loc));
@@ -80,9 +110,9 @@ class MapAnalysis {
                 }
             }
         }
-        return new MapLocation(planet, maxX, maxY);
+        return new MapLocation(Player.map.getPlanet(), maxX, maxY);
     }
-    public static PriorityQueue<Tuple<MapLocation, Integer>> baseFactoryQueue(MapLocation baseLocation, short[][] baseMat, short[][] passabilityMat, long[][] karboniteMat){
+    private static PriorityQueue<Tuple<MapLocation, Integer>> baseFactoryQueue(MapLocation baseLocation, short[][] baseMat, short[][] passabilityMat, long[][] karboniteMat){
         //Returns a priorityQueue of locations to build factories
         //Priority based on distance to center and lost Karbonite
         //Locations guaranteed to be valid
@@ -108,7 +138,6 @@ class MapAnalysis {
 
 //Quazimondo fast gaussian blur:
 //http://incubator.quasimondo.com/processing/gaussian_blur_1.php
-
 class Convolver{
     int radius;
     int kernelSize;
