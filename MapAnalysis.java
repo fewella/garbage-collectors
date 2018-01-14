@@ -29,12 +29,12 @@ class MapAnalysis {
             {0, 0, 0, 0, 0},
             {1, 1, 0, 1, 1},
             {1, 1, 0, 1, 1}};
+    //union-find structures
     private static short[] idEarth, idMars;
     private static int[] karbEarth, karbMars;
     //Mars only
     private static ArrayList<short[][]> karbonite3dMat; //(should take .5 MB max)
-    private static ArrayList<Integer> karboniteTotalArray;
-    private static ArrayList<Integer> karboniteRoundArray;
+    private static ArrayList<Integer> karboniteTotalArray, karboniteRoundArray;
 
     //public methods
     //feel free to use them
@@ -100,8 +100,8 @@ class MapAnalysis {
         passabilityMat(Player.mapEarth);
         passabilityMat(Player.mapMars);
         karboniteMat();
-        karbonite3dMat();
         //secondary analysis
+        karbonite3dMat(passabilityMatMars);
         //7 rounds to switch to Earth's turn, build unit, load to rocket, and launch
         connectivityArr(Planet.Earth, passabilityMatEarth, karboniteMatEarth);
         connectivityArr(Planet.Mars, passabilityMatMars, karboniteMatMars(743).x);
@@ -260,8 +260,26 @@ class MapAnalysis {
         }
     }
     //Mars only
-    private static void karbonite3dMat(){
+    private static void karbonite3dMat(short[][] passMat){
         //third dimension is time
+        //modify passMat
+        short[][] passMat2 = cloneMat(passMat);
+        for(int y = 0; y < passMat[0].length; y++){
+            for(int x = 0; x < passMat.length; x++){
+                if(passMat[y][x] != 0) continue;
+                kernel:
+                for(int xi = -1; xi <= 1; xi++){
+                    for(int yi = -1; yi <= 1; yi++){
+                        if(y+yi < 0 || y+yi >= passMat[0].length || x+xi < 0 || x+xi >= passMat.length) continue;
+                        if(passMat[y+yi][x+xi] == 1){
+                            passMat2[y][x] = 1;
+                            break kernel;
+                        }
+                    }
+                }
+            }
+        }
+        //process asteroids
         AsteroidPattern asteroids = Player.gc.asteroidPattern();
         short[][] cumulativeMat = new short[(int)Player.mapMars.getHeight()][(int)Player.mapMars.getWidth()];
         int cumulative = 0;
@@ -278,12 +296,12 @@ class MapAnalysis {
                 continue;
             AsteroidStrike asteroid = asteroids.asteroid(round);
             cumulativeMat[asteroid.getLocation().getY()][asteroid.getLocation().getX()] += asteroid.getKarbonite();
-            cumulative += asteroid.getKarbonite();
+            if(passMat2[asteroid.getLocation().getY()][asteroid.getLocation().getX()] == 1) cumulative += asteroid.getKarbonite();
             karbonite3dMat.add(cloneMat(cumulativeMat));
             karboniteTotalArray.add(cumulative);
             karboniteRoundArray.add(round);
         }
-        System.out.println("Mars total karbonite: " + cumulative);
+        System.out.println("Mars total reachable karbonite: " + cumulative);
     }
 
     //helper methods
