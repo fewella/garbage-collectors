@@ -48,7 +48,7 @@ public class Player {
                 	Unit temp = units.get(i);
                 	if (temp.unitType()==UnitType.Worker) {
                 		worker.add(temp);
-                		System.out.println("added worker");
+                		//System.out.println("added worker");
                 	}
                 	else if (temp.unitType()==UnitType.Knight) 
                 		knight.add(temp);
