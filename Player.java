@@ -9,13 +9,15 @@ public class Player {
 
     //global variables
     static GameController gc;
-    static PlanetMap map;
+    static PlanetMap map, mapEarth, mapMars;
 
     public static void main(String[] args) {
         try {
             //connect to the manager, starting the game
             gc = new GameController();
             map = gc.startingMap(gc.planet());
+            mapEarth = gc.startingMap(Planet.Earth);
+            mapMars = gc.startingMap(Planet.Mars);
 
             //map analysis
             MapAnalysis.setup();

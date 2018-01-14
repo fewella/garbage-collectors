@@ -21,16 +21,19 @@ class MapAnalysis {
     //If workers aren't all on one side of the map, the initial base placement will be next to the center
     //Initial base placement does not look at karbonite
 
-    //map analysis public variables
+    //public variables
     //feel free to use them
-    static short[][] passabilityMat;
-    //Earth only
+    static short[][] passabilityMat, passabilityMatEarth, passabilityMatMars;
     static long[][] karboniteMat;
     static long karboniteTotal;
+    //Earth only
     static MapLocation baseLocation;
     static PriorityQueue<Tuple<MapLocation, Integer>> factoryQueue;
 
-    private static short[][][] karbonite3dMat;  //Mars only (should take .5 MB max)
+    //private variables
+    private static ArrayList<short[][]> karbonite3dMat; //(should take .5 MB max)
+    private static ArrayList<Integer> karboniteTotalArray;
+    private static ArrayList<Integer> karboniteRoundArray;
     private static short[][] smallBase =
         {{1, 1, 0, 1, 1},
         {1, 1, 0, 1, 1},
@@ -38,68 +41,93 @@ class MapAnalysis {
         {1, 1, 0, 1, 1},
         {1, 1, 0, 1, 1}};
 
-    public static void setup(){
-        passabilityMat();
-        if (Player.map.getPlanet() == Planet.Earth) {
-            karboniteMat();
-
-            Convolver c4 = new Convolver(4);
-            baseLocation(opennnesMat(c4));
-            System.out.println("Base location: " + baseLocation.getX() + ", " + baseLocation.getY());
-
-            baseFactoryQueue(baseLocation, smallBase);
+    //public methods
+    //feel free to use them
+    public static Tuple<short[][], Short> karboniteMatMars(int round){
+        if(round < 1)   round = 1;
+        else if(round > 1000)   round = 1000;
+        //binary search
+        int high = karboniteRoundArray.size();
+        int low = 0;
+        int mid;
+        while(low < high){
+            mid = (high+low)/2;
+            if(karboniteRoundArray.get(mid) < round)
+                low=mid+1;
+            else if(karboniteRoundArray.get(mid) == round)
+                return new Tuple<>(karbonite3dMat.get(mid), karboniteTotalArray.get(mid).shortValue());
+            else
+                high=mid;
         }
+        return new Tuple<>(karbonite3dMat.get(low-1), karboniteTotalArray.get(low-1).shortValue());
     }
-    //call this before sending a rocket
-    public static MapLocation rocketTarget(double aggressiveness){
+    public static MapLocation rocketTarget(boolean aggressive){
         //returns a most suitable rocket landing location
-        //aggressiveness:
-        //0: send to a safe location next to friendly units
-        //1: bombard enemy base
+        //aggressive:
+        //false: send to a safe location next to friendly units
+        //true: bombard enemy base
 
         //TODO
         return null;
     }
+    //methods for Player
+    public static void setup(){
+        passabilityMatEarth = passabilityMat(Player.mapEarth);
+        passabilityMatMars = passabilityMat(Player.mapMars);
+        karboniteMat();
+        karbonite3dMat();
+        if (Player.gc.planet() == Planet.Earth) {
+            passabilityMat = passabilityMatEarth;
 
-    private static void passabilityMat(){
+            Convolver c4 = new Convolver(4);
+            baseLocation(opennnesMat(passabilityMatEarth, c4));
+            System.out.println("Base location: " + baseLocation.getX() + ", " + baseLocation.getY());
+
+            baseFactoryQueue(baseLocation, smallBase);
+        }
+        else{
+            passabilityMat = passabilityMatMars;
+        }
+    }
+
+    //private methods
+    private static short[][] passabilityMat(PlanetMap pm){
         //same outputs as PlanetMap.isPassableTerrainAt
-        short[][] out = new short[(int)Player.map.getHeight()][(int)Player.map.getWidth()];
-        for(int y = 0; y < Player.map.getHeight(); y++){
-            for(int x = 0; x < Player.map.getWidth(); x++){
-                out[y][x] = Player.map.isPassableTerrainAt(new MapLocation(Player.map.getPlanet(), x, y));
+        short[][] out = new short[(int)pm.getHeight()][(int)pm.getWidth()];
+        for(int y = 0; y < pm.getHeight(); y++){
+            for(int x = 0; x < pm.getWidth(); x++){
+                out[y][x] = pm.isPassableTerrainAt(new MapLocation(pm.getPlanet(), x, y));
             }
         }
-        passabilityMat = out;
+        return out;
     }
-    private static void karboniteMat(){
-        //same outputs as PlanetMap.initialKarboniteAt
-        long[][] out = new long[(int)Player.map.getHeight()][(int)Player.map.getWidth()];
-        long total = 0;
-        for(int y = 0; y < Player.map.getHeight(); y++){
-            for(int x = 0; x < Player.map.getWidth(); x++){
-                long karb = Player.map.initialKarboniteAt(new MapLocation(Player.map.getPlanet(), x, y));
-                out[y][x] = karb;
-                total += karb;
-            }
-        }
-        karboniteMat = out;
-        karboniteTotal = total;
-        System.out.println("Earth total karbonite: " + total);
-    }
-    private static int[][] opennnesMat(Convolver c4){
+    private static int[][] opennnesMat(short[][] passMat, Convolver c4){
         //0 is completely occupied
         //255 is completely open
         c4.setRadius(4);
-        return c4.blur(passabilityMat);
+        return c4.blur(passMat);
     }
-
+    //Earth only
+    private static void karboniteMat(){
+        //same outputs as PlanetMap.initialKarboniteAt
+        karboniteMat = new long[(int)Player.mapEarth.getHeight()][(int)Player.mapEarth.getWidth()];
+        karboniteTotal = 0;
+        for(int y = 0; y < Player.mapEarth.getHeight(); y++){
+            for(int x = 0; x < Player.mapEarth.getWidth(); x++){
+                long karb = Player.mapEarth.initialKarboniteAt(new MapLocation(Player.mapEarth.getPlanet(), x, y));
+                karboniteMat[y][x] = karb;
+                karboniteTotal += karb;
+            }
+        }
+        System.out.println("Earth total karbonite: " + karboniteTotal);
+    }
     private static void baseLocation(int[][] opennessMat){
         //Returns suitable location for a base
         //Based on available space and distance from initial workers
         double max = 0;
         int maxX = 0;
         int maxY = 0;
-        VecUnit workers = Player.map.getInitial_units();
+        VecUnit workers = Player.mapEarth.getInitial_units();
         ArrayList<MapLocation> workerLocs = new ArrayList<>();
         for(int i = 0; i < workers.size(); i++){
             Unit worker = workers.get(i);
@@ -112,7 +140,7 @@ class MapAnalysis {
                 //weight:
                 //openness +[0, 255]   +openness
                 //distance -[0, 100]   -5*linear_dist, 30 blocks = -150, caps at -150
-                MapLocation loc = new MapLocation(Player.map.getPlanet(), x, y);
+                MapLocation loc = new MapLocation(Planet.Earth, x, y);
                 double val = 0;
                 for(MapLocation workerLoc : workerLocs){
                     val -= Math.sqrt(workerLoc.distanceSquaredTo(loc));
@@ -128,29 +156,66 @@ class MapAnalysis {
                 }
             }
         }
-        baseLocation = new MapLocation(Player.map.getPlanet(), maxX, maxY);
+        baseLocation = new MapLocation(Planet.Earth, maxX, maxY);
     }
     private static void baseFactoryQueue(MapLocation baseLocation, short[][] baseMat){
         //Returns a priorityQueue of locations to build factories
         //Priority based on distance to center and lost Karbonite
         //Locations guaranteed to be valid
 
-        PriorityQueue<Tuple<MapLocation, Integer>> pq = new PriorityQueue<>(16, new mapLocationComparator());
+        factoryQueue = new PriorityQueue<>(16, new mapLocationComparator());
 
-        int xtemp = baseLocation.getX()-baseMat[0].length/2;
-        int ytemp = baseLocation.getY()-baseMat.length/2;
+        int xTemp = baseLocation.getX()-baseMat[0].length/2;
+        int yTemp = baseLocation.getY()-baseMat.length/2;
 
         for(int yi = 0; yi < baseMat.length; yi++){
             for(int xi = 0; xi < baseMat[0].length; xi++){
-                int x = xtemp+xi;
-                int y = ytemp+yi;
-                if(baseMat[yi][xi]==1 && x>=0 && y>=0 && x<passabilityMat[0].length && y<passabilityMat.length && passabilityMat[y][x]==1){
-                    MapLocation loc = new MapLocation(baseLocation.getPlanet(), x, y);
-                    pq.add(new Tuple<>(loc, (int)(5*Math.sqrt(loc.distanceSquaredTo(baseLocation)))+(int)karboniteMat[y][x]));
+                int x = xTemp+xi;
+                int y = yTemp+yi;
+                if(baseMat[yi][xi]==1 && x>=0 && y>=0 && x<passabilityMatEarth[0].length && y<passabilityMatEarth.length && passabilityMatEarth[y][x]==1){
+                    MapLocation loc = new MapLocation(Planet.Earth, x, y);
+                    factoryQueue.add(new Tuple<>(loc, (int)(5*Math.sqrt(loc.distanceSquaredTo(baseLocation)))+(int)karboniteMat[y][x]));
                 }
             }
         }
-        factoryQueue = pq;
+    }
+    //Mars only
+    private static void karbonite3dMat(){
+        //third dimension is time
+        AsteroidPattern asteroids = Player.gc.asteroidPattern();
+        short[][] cumulativeMat = new short[(int)Player.mapMars.getHeight()][(int)Player.mapMars.getWidth()];
+        int cumulative = 0;
+        karbonite3dMat = new ArrayList<>();
+        karboniteTotalArray = new ArrayList<>();
+        karboniteRoundArray = new ArrayList<>();
+        if(!asteroids.hasAsteroid(1)) {
+            karbonite3dMat.add(cloneMat(cumulativeMat));
+            karboniteTotalArray.add(cumulative);
+            karboniteRoundArray.add(1);
+        }
+        for(int round = 0; round < 1000; round++){
+            if(!asteroids.hasAsteroid(round))
+                continue;
+            AsteroidStrike asteroid = asteroids.asteroid(round);
+            cumulativeMat[asteroid.getLocation().getY()][asteroid.getLocation().getX()] += asteroid.getKarbonite();
+            cumulative += asteroid.getKarbonite();
+            karbonite3dMat.add(cloneMat(cumulativeMat));
+            karboniteTotalArray.add(cumulative);
+            karboniteRoundArray.add(round);
+        }
+        System.out.println("Mars total karbonite: " + cumulative);
+    }
+
+    //helper methods
+    private static short[][] cloneMat(short[][] mat){
+        short[][] out = new short[mat.length][];
+        for(int i = 0; i < mat.length; i++) {
+            short[] row = mat[i];
+            int len = row.length;
+            out[i] = new short[len];
+            System.arraycopy(row, 0, out[i], 0, len);
+        }
+        return out;
     }
 }
 
@@ -160,7 +225,7 @@ class Convolver{
     int radius;
     int kernelSize;
     int[] kernel;
-    int[][] mult;
+    int[][] multiples;
 
     Convolver(int sz){
         this.setRadius(sz);
@@ -173,19 +238,19 @@ class Convolver{
         if (radius==sz) return;
         kernelSize=1+sz*2;
         radius=sz;
-        kernel= new int[1+sz*2];
-        mult=new int[1+sz*2][256];
+        kernel=new int[1+sz*2];
+        multiples=new int[1+sz*2][256];
 
         for (i=1;i<sz;i++){
             int szi=sz-i;
             kernel[sz+i]=kernel[szi]=szi;
             for (j=0;j<256;j++){
-                mult[sz+i][j]=mult[szi][j]=kernel[szi]*j;
+                multiples[sz+i][j]= multiples[szi][j]=kernel[szi]*j;
             }
         }
         kernel[sz]=sz;
         for (j=0;j<256;j++){
-            mult[sz][j]=kernel[sz]*j;
+            multiples[sz][j]=kernel[sz]*j;
         }
     }
 
@@ -208,7 +273,7 @@ class Convolver{
                 for (i=0;i<kernelSize;i++){
                     xi=ri+i;
                     if (xi>=0 && xi<iw){
-                        c+=mult[i][255*img[yi][xi]];
+                        c+= multiples[i][255*img[yi][xi]];
                     }
                     sum+=kernel[i];
                 }
@@ -228,7 +293,7 @@ class Convolver{
                 ri=ym;
                 for (i=0;i<kernelSize;i++){
                     if (ri<ih && ri>=0){
-                        c+=mult[i][img2[ri][xl]];
+                        c+= multiples[i][img2[ri][xl]];
                     }
                     sum+=kernel[i];
                     ri++;
