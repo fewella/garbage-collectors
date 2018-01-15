@@ -37,7 +37,7 @@ public class Player {
             try{
                 //game cycle
                 Econ.turn(gc);
-
+                ComBot.turn(gc);
                 gc.nextTurn();
             }
             catch(Exception e){
