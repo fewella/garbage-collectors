@@ -31,6 +31,7 @@ class MapAnalysis {
             {1, 1, 0, 1, 1}};
     //union-find structures
     private static short[] idEarth, idMars;
+    private static short[] szEarth, szMars;
     private static int[] karbEarth, karbMars;
     //rocket landing location structures
     private static int deliveryId, orderId;
@@ -71,6 +72,21 @@ class MapAnalysis {
             id = idMars;
         }
         return root(id, (short)(y1*w+x1)) == root(id, (short)(y2*w+x2));
+    }
+    public static int chamberSize(Planet p, int x, int y){
+        int w;
+        short[] id, sz;
+        if(p == Planet.Earth){
+            w = (int)Player.mapEarth.getWidth();
+            id = idEarth;
+            sz = szEarth;
+        }
+        else{
+            w = (int)Player.mapMars.getWidth();
+            id = idMars;
+            sz = szMars;
+        }
+        return sz[root(id, (short)(y*w+x))];
     }
     public static int karboniteConnected(Planet p, int x, int y){
         int w;
@@ -248,10 +264,12 @@ class MapAnalysis {
         if(p == Planet.Earth){
             idEarth = id;
             karbEarth = karb;
+            szEarth = sz;
         }
         else{
             idMars = id;
             karbMars = karb;
+            szMars = sz;
         }
 
     }
@@ -277,17 +295,26 @@ class MapAnalysis {
         int maxY = 0;
         VecUnit workers = Player.mapEarth.getInitial_units();
         ArrayList<MapLocation> workerLocs = new ArrayList<>();
+        ArrayList<MapLocation> enemyWorkerLocs = new ArrayList<>();
         for(int i = 0; i < workers.size(); i++){
             Unit worker = workers.get(i);
             if(worker.team() == Player.gc.team()) {
                 workerLocs.add(worker.location().mapLocation());
             }
+            else{
+                enemyWorkerLocs.add(worker.location().mapLocation());
+            }
         }
+        MapLocation center = new MapLocation(Planet.Earth, opennessMat[0].length/2, opennessMat.length/2);
         for(int y = 0; y < opennessMat.length; y++){
             for(int x = 0; x < opennessMat[0].length; x++){
                 //weight:
+                //friendly distance -[0, 150]   -5*linear_dist, 30 blocks = -150, caps at -150
+                //enemy distance +[0, 150]   +5*linear_dist, 30 blocks = 150, caps at 150
                 //openness +[0, 255]   +openness
-                //distance -[0, 100]   -5*linear_dist, 30 blocks = -150, caps at -150
+                //center   +[0, 100]    +2.5*linear_dist, 40 blocks = 100, caps at 100
+
+                //workers
                 MapLocation loc = new MapLocation(Planet.Earth, x, y);
                 double val = 0;
                 for(MapLocation workerLoc : workerLocs){
@@ -296,7 +323,18 @@ class MapAnalysis {
                 val /= workerLocs.size();
                 val = Math.max(-30, val);
                 val *= 5;
+                double val2 = 0;
+                for(MapLocation workerLoc : enemyWorkerLocs){
+                    val2 += Math.sqrt(workerLoc.distanceSquaredTo(loc));
+                }
+                val2 /= enemyWorkerLocs.size();
+                val2 = Math.min(30, val2);
+                val2 *= 5;
+                val += val2;
+
+                //openness, center
                 val += opennessMat[y][x];
+                val += Math.min(100, 2.5*Math.sqrt(center.distanceSquaredTo(center)));
                 if(val > max){
                     max = val;
                     maxX = x;
