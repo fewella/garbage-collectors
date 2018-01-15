@@ -2,9 +2,8 @@
 // See xxx for the javadocs.
 import bc.*;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.PriorityQueue;
+import java.awt.*;
+import java.util.*;
 
 class MapAnalysis {
     //coordinate system:
@@ -29,6 +28,7 @@ class MapAnalysis {
             {0, 0, 0, 0, 0},
             {1, 1, 0, 1, 1},
             {1, 1, 0, 1, 1}};
+    private static int[][] blankBFS;
     //union-find structures
     private static short[] idEarth, idMars;
     private static short[] szEarth, szMars;
@@ -42,6 +42,57 @@ class MapAnalysis {
 
     //public methods
     //feel free to use them
+    public static int[][] BFS(ArrayList<MapLocation> destinations){
+        Queue<Integer> xq = new LinkedList<>();
+        Queue<Integer> yq = new LinkedList<>();
+        int h = (int)Player.map.getHeight();
+        int w = (int)Player.map.getWidth();
+        int[][] out = cloneMat(blankBFS);
+        //add factories, rockets, (workers for now)
+        for(Unit wo : Player.worker){
+            Location loc = wo.location();
+            if(!loc.isOnMap()) continue;
+            MapLocation mapLoc = loc.mapLocation();
+            out[mapLoc.getY()][mapLoc.getX()] = 9999;
+        }
+        for(Unit f : Player.factory){
+            MapLocation mapLoc = f.location().mapLocation();
+            out[mapLoc.getY()][mapLoc.getX()] = 9999;
+        }
+        for(Unit r : Player.rocket){
+            Location loc = r.location();
+            if(!loc.isOnMap()) continue;
+            MapLocation mapLoc = loc.mapLocation();
+            out[mapLoc.getY()][mapLoc.getX()] = 9999;
+        }
+        //add initial locations
+        for(MapLocation mapLoc : destinations){
+            int x = mapLoc.getX();
+            int y = mapLoc.getY();
+            out[y][x] = 0;
+            xq.add(x);
+            yq.add(y);
+        }
+        //BFS
+        while(!xq.isEmpty()){
+            int cx = xq.remove();
+            int cy = yq.remove();
+            for(int dy = -1; dy <= 1; dy++) {
+                int y = cy+dy;
+                if(y < 0 || y >= h) continue;
+                for (int dx = -1; dx <= 1; dx++){
+                    int x = cx+dx;
+                    if(x < 0 || x >= w) continue;
+                    if(out[y][x] == -1){
+                        out[y][x] = out[cy][cx]+1;
+                        xq.add(x);
+                        yq.add(y);
+                    }
+                }
+            }
+        }
+        return out;
+    }
     public static Tuple<short[][], Short> karboniteMatMars(int round){
         if(round < 1)   round = 1;
         else if(round > 1000)   round = 1000;
@@ -176,6 +227,19 @@ class MapAnalysis {
         else{
             passabilityMat = passabilityMatMars;
             passableTotal = passableTotalMars;
+        }
+        //for BFS
+        int h = (int)Player.map.getHeight();
+        int w = (int)Player.map.getWidth();
+        blankBFS = new int[h][w];
+        for(int y = 0; y < h; y++){
+            for(int x = 0; x < w; x++) {
+                if(passabilityMat[y][x] == 0)
+                    blankBFS[y][x] = 9999;
+                else{
+                    blankBFS[y][x] = -1;
+                }
+            }
         }
     }
     public static void turn(){
@@ -471,6 +535,16 @@ class MapAnalysis {
             short[] row = mat[i];
             int len = row.length;
             out[i] = new short[len];
+            System.arraycopy(row, 0, out[i], 0, len);
+        }
+        return out;
+    }
+    private static int[][] cloneMat(int[][] mat){
+        int[][] out = new int[mat.length][];
+        for(int i = 0; i < mat.length; i++) {
+            int[] row = mat[i];
+            int len = row.length;
+            out[i] = new int[len];
             System.arraycopy(row, 0, out[i], 0, len);
         }
         return out;

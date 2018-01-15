@@ -10,15 +10,16 @@ public class Player {
     static GameController gc;
     static PlanetMap map, mapEarth, mapMars;
     static Veci32 arrayEarth, arrayMars;
+    static Queue<Unit> worker, knight, ranger, healer, mage, factory, rocket;
 
     public static void main(String[] args) {
-        Queue<Unit> worker = new LinkedList<Unit>();
-        Queue<Unit> knight = new LinkedList<Unit>();
-        Queue<Unit> ranger = new LinkedList<Unit>();
-        Queue<Unit> healer = new LinkedList<Unit>();
-        Queue<Unit> mage = new LinkedList<Unit>();
-        Queue<Unit> factory = new LinkedList<Unit>();
-        Queue<Unit> rocket = new LinkedList<Unit>();
+        worker = new LinkedList<>();
+        knight = new LinkedList<>();
+        ranger = new LinkedList<>();
+        healer = new LinkedList<>();
+        mage = new LinkedList<>();
+        factory = new LinkedList<>();
+        rocket = new LinkedList<>();
         try {
             //connect to the manager, starting the game
             gc = new GameController();
