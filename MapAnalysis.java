@@ -73,6 +73,21 @@ class MapAnalysis {
         }
         return root(id, (short)(y1*w+x1)) == root(id, (short)(y2*w+x2));
     }
+    public static int chamberSize(Planet p, int x, int y){
+        int w;
+        short[] id, sz;
+        if(p == Planet.Earth){
+            w = (int)Player.mapEarth.getWidth();
+            id = idEarth;
+            sz = szEarth;
+        }
+        else{
+            w = (int)Player.mapMars.getWidth();
+            id = idMars;
+            sz = szMars;
+        }
+        return sz[root(id, (short)(y*w+x))];
+    }
     public static int karboniteConnected(Planet p, int x, int y){
         int w;
         short[] id;
