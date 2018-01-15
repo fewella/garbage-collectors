@@ -9,6 +9,7 @@ public class Player {
     //global variables
     static GameController gc;
     static PlanetMap map, mapEarth, mapMars;
+    static Veci32 arrayEarth, arrayMars;
 
     public static void main(String[] args) {
     	Queue<Unit> worker = new LinkedList<Unit>();
@@ -42,8 +43,11 @@ public class Player {
         while (true) {
             try{
                 //game cycle
+                arrayEarth = gc.getTeamArray(Planet.Earth);
+                arrayMars = gc.getTeamArray(Planet.Mars);
+
             	VecUnit units = gc.myUnits();
-                System.out.println("Units "+ units.size());
+                //System.out.println("Units "+ units.size());
                 for(int i = 0; i < units.size(); i++) {
                 	Unit temp = units.get(i);
                 	if (temp.unitType()==UnitType.Worker) {
@@ -63,6 +67,7 @@ public class Player {
                 	else
                 		rocket.add(temp);
                 }
+                MapAnalysis.turn();
                 Econ.turn(gc, worker, factory);
 
                 gc.nextTurn();
