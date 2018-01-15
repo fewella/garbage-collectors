@@ -12,34 +12,32 @@ class MapAnalysis {
     //y increases upwards (northward)
     //x increases to the right (eastward)
 
-    //TODO: (if you want me to do something, you can add it here)
-    //Rocket landing locations
-    //Asteroid pattern analysis
-    //First factory placement (for fast rollout)
-
-    //issues:
-    //If workers aren't all on one side of the map, the initial base placement will be next to the center
-    //Initial base placement does not look at karbonite
-
     //public variables
     //feel free to use them
     static short[][] passabilityMat, passabilityMatEarth, passabilityMatMars;
-    static long[][] karboniteMat;
-    static long karboniteTotal;
+    static short passableTotal, passableTotalEarth, passableTotalMars;
+    static short[][] karboniteMatEarth;
+    static int karboniteTotalEarth;
     //Earth only
     static MapLocation baseLocation;
     static PriorityQueue<Tuple<MapLocation, Integer>> factoryQueue;
 
     //private variables
-    private static ArrayList<short[][]> karbonite3dMat; //(should take .5 MB max)
-    private static ArrayList<Integer> karboniteTotalArray;
-    private static ArrayList<Integer> karboniteRoundArray;
     private static short[][] smallBase =
-        {{1, 1, 0, 1, 1},
-        {1, 1, 0, 1, 1},
-        {0, 0, 0, 0, 0},
-        {1, 1, 0, 1, 1},
-        {1, 1, 0, 1, 1}};
+            {{1, 1, 0, 1, 1},
+            {1, 1, 0, 1, 1},
+            {0, 0, 0, 0, 0},
+            {1, 1, 0, 1, 1},
+            {1, 1, 0, 1, 1}};
+    //union-find structures
+    private static short[] idEarth, idMars;
+    private static int[] karbEarth, karbMars;
+    //rocket landing location structures
+    private static int deliveryId, orderId;
+    private static short[] received, used;
+    //Mars only
+    private static ArrayList<short[][]> karbonite3dMat; //(should take .5 MB max)
+    private static ArrayList<Integer> karboniteTotalArray, karboniteRoundArray;
 
     //public methods
     //feel free to use them
@@ -61,45 +59,155 @@ class MapAnalysis {
         }
         return new Tuple<>(karbonite3dMat.get(low-1), karboniteTotalArray.get(low-1).shortValue());
     }
-    public static MapLocation rocketTarget(boolean aggressive){
-        //returns a most suitable rocket landing location
-        //aggressive:
-        //false: send to a safe location next to friendly units
-        //true: bombard enemy base
+    public static boolean connectivity(Planet p, int x1, int y1, int x2, int y2){
+        int w;
+        short[] id;
+        if(p == Planet.Earth){
+            w = (int)Player.mapEarth.getWidth();
+            id = idEarth;
+        }
+        else{
+            w = (int)Player.mapMars.getWidth();
+            id = idMars;
+        }
+        return root(id, (short)(y1*w+x1)) == root(id, (short)(y2*w+x2));
+    }
+    public static int karboniteConnected(Planet p, int x, int y){
+        int w;
+        short[] id;
+        int[] karb;
+        if(p == Planet.Earth){
+            w = (int)Player.mapEarth.getWidth();
+            id = idEarth;
+            karb = karbEarth;
+        }
+        else{
+            w = (int)Player.mapMars.getWidth();
+            id = idMars;
+            karb = karbMars;
+        }
+        return karb[root(id, (short)(y*w+x))];
+    }
+    //Earth only
+    /**
+     * Call from Earth to request landing locations. While this is done periodically, calling this 100 turns before
+     * requesting locations ensures that the data is most recent (50 turns old), and minimizes the risk of running out of locations.
+     * @param tt number of locations that will be received with requestLandingLocations(true, true)
+     * @param tf number of locations that will be received with requestLandingLocations(true, false)
+     * @param ft number of locations that will be received with requestLandingLocations(false, true)
+     * @param ff number of locations that will be received with requestLandingLocations(false, false)
+     */
+    public static void landingLocationsRequest(int tt, int tf, int ft, int ff){
+        Player.gc.writeTeamArray(0, ++orderId);
+        Player.gc.writeTeamArray(1, tt);
+        Player.gc.writeTeamArray(2, tf);
+        Player.gc.writeTeamArray(3, ft);
+        Player.gc.writeTeamArray(4, ff);
+    }
+    /**
+     * Call from Earth to receive a most suitable rocket landing location.
+     * For optimal results, call requestLandingLocations() 51 turns before calling this.
+     * @param aggressive <br>true: prioritize bombarding enemy base
+     *                   <br>false: avoid enemies
+     * @param congressive <br>true: prioritize sending close to friendly units
+     *                    <br>false: prioritize covering more ground
+     * @return MapLocation of the best landing location
+     */
+    public static MapLocation landingLocationsRetrieve(boolean aggressive, boolean congressive){
+        int i = 0;
+        if(!aggressive) i = 2;
+        if(!congressive) i++;
+        if(received[i] <= used[i]){
+            System.out.println("Ran out of landing locations for aggressive: " + aggressive + " congressive: " + congressive);
+            //return random location
+            while(true) {
+                int x = (int) (Player.mapMars.getWidth() * Math.random());
+                int y = (int) (Player.mapMars.getHeight() * Math.random());
+                if(passabilityMatMars[y][x] == 1) return new MapLocation(Planet.Mars, x, y);
+            }
+        }
+        int i2 = 5+used[i]++;
+        for(int j = 0; j < i; j++) i2 += received[j];
+        int val = Player.arrayMars.get(i2);
 
-        //TODO
-        return null;
+        return new MapLocation(Planet.Mars, (int)(val/Player.mapMars.getWidth()), (int)(val%Player.mapMars.getWidth()));
     }
     //methods for Player
     public static void setup(){
-        passabilityMatEarth = passabilityMat(Player.mapEarth);
-        passabilityMatMars = passabilityMat(Player.mapMars);
+        orderId = 0;
+        deliveryId = 0;
+        received = new short[4];
+        used = new short[4];
+        //primary analysis
+        passabilityMat(Player.mapEarth);
+        passabilityMat(Player.mapMars);
         karboniteMat();
-        karbonite3dMat();
+        //secondary analysis
+        karbonite3dMat(passabilityMatMars);
+        //7 rounds to switch to Earth's turn, build unit, load to rocket, and launch
+        connectivityArr(Planet.Earth, passabilityMatEarth, karboniteMatEarth);
+        connectivityArr(Planet.Mars, passabilityMatMars, karboniteMatMars(743).x);
         if (Player.gc.planet() == Planet.Earth) {
             passabilityMat = passabilityMatEarth;
+            passableTotal = passableTotalEarth;
 
             Convolver c4 = new Convolver(4);
             baseLocation(opennnesMat(passabilityMatEarth, c4));
             System.out.println("Base location: " + baseLocation.getX() + ", " + baseLocation.getY());
 
-            baseFactoryQueue(baseLocation, smallBase);
+            baseFactoryQueue(baseLocation, smallBase, passabilityMatEarth, karboniteMatEarth);
         }
         else{
             passabilityMat = passabilityMatMars;
+            passableTotal = passableTotalMars;
+        }
+    }
+    public static void turn(){
+        if(Player.gc.planet() == Planet.Earth){
+            //listen to delivery
+            int newDeliveryId = Player.arrayMars.get(0);
+            if(deliveryId != newDeliveryId){
+                deliveryId = newDeliveryId;
+                received = new short[4];
+                used = new short[4];
+                //read delivery details
+                for(int i = 0; i < 4; i++)
+                    received[i] = (short)(Player.arrayMars.get(i+1));
+            }
+        }
+        else{
+            //auto send
+            if (Player.gc.round() % 50 == 1)
+                landingLocationsCompute(10, 10, 10, 10);
+            //listen to orders
+            int newOrderId = Player.arrayEarth.get(0);
+            if(orderId != newOrderId){
+                orderId = newOrderId;
+                //process order, send delivery
+                landingLocationsCompute(Player.arrayEarth.get(1), Player.arrayEarth.get(2), Player.arrayEarth.get(3), Player.arrayEarth.get(4));
+            }
         }
     }
 
     //private methods
-    private static short[][] passabilityMat(PlanetMap pm){
+    private static void passabilityMat(PlanetMap pm){
         //same outputs as PlanetMap.isPassableTerrainAt
         short[][] out = new short[(int)pm.getHeight()][(int)pm.getWidth()];
+        short total = 0;
         for(int y = 0; y < pm.getHeight(); y++){
             for(int x = 0; x < pm.getWidth(); x++){
                 out[y][x] = pm.isPassableTerrainAt(new MapLocation(pm.getPlanet(), x, y));
+                if(out[y][x] == 1) total++;
             }
         }
-        return out;
+        if(pm.getPlanet() == Planet.Earth){
+            passabilityMatEarth = out;
+            passableTotalEarth = total;
+        }
+        else{
+            passabilityMatMars = out;
+            passableTotalMars = total;
+        }
     }
     private static int[][] opennnesMat(short[][] passMat, Convolver c4){
         //0 is completely occupied
@@ -107,19 +215,59 @@ class MapAnalysis {
         c4.setRadius(4);
         return c4.blur(passMat);
     }
+    private static void connectivityArr(Planet p, short[][] passMat, short[][] karbMat){
+        //Union-find:
+        //https://www.cs.princeton.edu/~rs/AlgsDS07/01UnionFind.pdf
+        //add nodes
+        int w = passMat[0].length;
+        int N = passMat.length*w;
+        short[] id = new short[N];
+        int[] karb = new int[N];
+        short[] sz = new short[N];
+        for(short i = 0; i < N; i++){
+            id[i] = i;
+            karb[i] = karbMat[i/w][i%w];
+            sz[i] = 1;
+        }
+        //connect edges
+        for(short i = 0; i < N; i++){
+            if(passMat[i/w][i%w] == 0)
+                continue;
+            if(i >= w){
+                if(passMat[(i-w)/w][(i-w)%w] == 1 && root(id, i) != root(id, (short)(i-w))) unite(id, karb, sz, i, (short)(i-w));
+                if(i%w > 0 && passMat[(i-w-1)/w][(i-w-1)%w] == 1 && root(id, i) != root(id, (short)(i-w-1)))
+                    unite(id, karb, sz, i, (short)(i-w-1));
+                if(i%w < w-1 && passMat[(i-w+1)/w][(i-w+1)%w] == 1 && root(id, i) != root(id, (short)(i-w+1)))
+                    unite(id, karb, sz, i, (short)(i-w+1));
+            }
+            if(i%w > 0 && passMat[(i-1)/w][(i-1)%w] == 1 && root(id, i) != root(id, (short)(i-1)))
+                unite(id, karb, sz, i, (short)(i-1));
+        }
+        //count karbonite in walls
+        //TODO
+        if(p == Planet.Earth){
+            idEarth = id;
+            karbEarth = karb;
+        }
+        else{
+            idMars = id;
+            karbMars = karb;
+        }
+
+    }
     //Earth only
     private static void karboniteMat(){
         //same outputs as PlanetMap.initialKarboniteAt
-        karboniteMat = new long[(int)Player.mapEarth.getHeight()][(int)Player.mapEarth.getWidth()];
-        karboniteTotal = 0;
+        karboniteMatEarth = new short[(int)Player.mapEarth.getHeight()][(int)Player.mapEarth.getWidth()];
+        karboniteTotalEarth = 0;
         for(int y = 0; y < Player.mapEarth.getHeight(); y++){
             for(int x = 0; x < Player.mapEarth.getWidth(); x++){
                 long karb = Player.mapEarth.initialKarboniteAt(new MapLocation(Player.mapEarth.getPlanet(), x, y));
-                karboniteMat[y][x] = karb;
-                karboniteTotal += karb;
+                karboniteMatEarth[y][x] = (short)karb;
+                karboniteTotalEarth += karb;
             }
         }
-        System.out.println("Earth total karbonite: " + karboniteTotal);
+        System.out.println("Earth total karbonite: " + karboniteTotalEarth);
     }
     private static void baseLocation(int[][] opennessMat){
         //Returns suitable location for a base
@@ -158,7 +306,7 @@ class MapAnalysis {
         }
         baseLocation = new MapLocation(Planet.Earth, maxX, maxY);
     }
-    private static void baseFactoryQueue(MapLocation baseLocation, short[][] baseMat){
+    private static void baseFactoryQueue(MapLocation baseLocation, short[][] baseMat, short[][] passMat, short[][] karbMat){
         //Returns a priorityQueue of locations to build factories
         //Priority based on distance to center and lost Karbonite
         //Locations guaranteed to be valid
@@ -172,16 +320,37 @@ class MapAnalysis {
             for(int xi = 0; xi < baseMat[0].length; xi++){
                 int x = xTemp+xi;
                 int y = yTemp+yi;
-                if(baseMat[yi][xi]==1 && x>=0 && y>=0 && x<passabilityMatEarth[0].length && y<passabilityMatEarth.length && passabilityMatEarth[y][x]==1){
+                if(baseMat[yi][xi]==1 && x>=0 && y>=0 && x<passMat[0].length && y<passMat.length && passMat[y][x]==1){
                     MapLocation loc = new MapLocation(Planet.Earth, x, y);
-                    factoryQueue.add(new Tuple<>(loc, (int)(5*Math.sqrt(loc.distanceSquaredTo(baseLocation)))+(int)karboniteMat[y][x]));
+                    factoryQueue.add(new Tuple<>(loc, (int)(5*Math.sqrt(loc.distanceSquaredTo(baseLocation)))+(int)karbMat[y][x]));
                 }
             }
         }
     }
+    private static void landingLocationsComputeInitial(){
+        //TODO
+    }
     //Mars only
-    private static void karbonite3dMat(){
+    private static void karbonite3dMat(short[][] passMat){
         //third dimension is time
+        //modify passMat
+        short[][] passMat2 = cloneMat(passMat);
+        for(int y = 0; y < passMat[0].length; y++){
+            for(int x = 0; x < passMat.length; x++){
+                if(passMat[y][x] != 0) continue;
+                kernel:
+                for(int xi = -1; xi <= 1; xi++){
+                    for(int yi = -1; yi <= 1; yi++){
+                        if(y+yi < 0 || y+yi >= passMat[0].length || x+xi < 0 || x+xi >= passMat.length) continue;
+                        if(passMat[y+yi][x+xi] == 1){
+                            passMat2[y][x] = 1;
+                            break kernel;
+                        }
+                    }
+                }
+            }
+        }
+        //process asteroids
         AsteroidPattern asteroids = Player.gc.asteroidPattern();
         short[][] cumulativeMat = new short[(int)Player.mapMars.getHeight()][(int)Player.mapMars.getWidth()];
         int cumulative = 0;
@@ -198,15 +367,66 @@ class MapAnalysis {
                 continue;
             AsteroidStrike asteroid = asteroids.asteroid(round);
             cumulativeMat[asteroid.getLocation().getY()][asteroid.getLocation().getX()] += asteroid.getKarbonite();
-            cumulative += asteroid.getKarbonite();
+            if(passMat2[asteroid.getLocation().getY()][asteroid.getLocation().getX()] == 1) cumulative += asteroid.getKarbonite();
             karbonite3dMat.add(cloneMat(cumulativeMat));
             karboniteTotalArray.add(cumulative);
             karboniteRoundArray.add(round);
         }
-        System.out.println("Mars total karbonite: " + cumulative);
+        System.out.println("Mars total reachable karbonite: " + cumulative);
+    }
+    private static void landingLocationsCompute(int tt, int tf, int ft, int ff){
+        //watch for improper arguments
+        int total = tt+tf+ft+ff;
+        if(total > 40) {
+            System.out.println("Number of total requested locations (" + total + ") exceeds 40");
+            tt = tf = ft = ff = 10;
+        }
+        Player.gc.writeTeamArray(0, ++deliveryId);
+        Player.gc.writeTeamArray(1, tt);
+        Player.gc.writeTeamArray(2, tf);
+        Player.gc.writeTeamArray(3, ft);
+        Player.gc.writeTeamArray(4, ff);
+        //compute best locations
+        //TODO
+        long c = 5;
+        long i = c;
+        int w = (int)Player.mapMars.getWidth();
+        for(c += tt; i < c; i++){
+            Player.gc.writeTeamArray(i, 0);
+        }
+        for(c += tf; i < c; i++){
+            Player.gc.writeTeamArray(i, (int)i);
+        }
+        for(c += ft; i < c; i++){
+            Player.gc.writeTeamArray(i, (int)i*w);
+        }
+        for(c += ff; i < c; i++){
+            Player.gc.writeTeamArray(i, (int)(i*w+i));
+        }
     }
 
     //helper methods
+    private static short root(short[] id, short i){
+        while (i != id[i]){
+            id[i] = id[id[i]];
+            i = id[i];
+        }
+        return i;
+    }
+    private static void unite(short[] id, int[] karb, short[] sz, short p, short q){
+        short i = root(id, p);
+        short j = root(id, q);
+        if(sz[i] < sz[j]){
+            id[i] = j;
+            sz[j] += sz[i];
+            karb[j] += karb[i];
+        }
+        else{
+            id[j] = i;
+            sz[i] += sz[j];
+            karb[i] += karb[j];
+        }
+    }
     private static short[][] cloneMat(short[][] mat){
         short[][] out = new short[mat.length][];
         for(int i = 0; i < mat.length; i++) {
