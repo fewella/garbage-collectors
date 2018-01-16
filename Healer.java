@@ -1,13 +1,14 @@
 import bc.*;
 
+import java.util.LinkedList;
+
 public class Healer {
-    public static void run(GameController gc) {
+    public static void run(GameController gc, LinkedList<Unit> healers) {
         Team team = gc.team();
         Team enemy = (team==Team.Blue) ? Team.Red:Team.Blue;
 
-        VecUnit units = gc.myUnits();
-        for(int i = 0; i < units.size(); i++) { //...there's gotta be a better way to do this
-            Unit currentHealer = units.get(i);
+        for(Unit currentHealer:healers) {
+            // Unit currentHealer = units.get(i);
 
             if(currentHealer.unitType().equals(UnitType.Healer)) { // Start actual healer code
 
@@ -22,8 +23,8 @@ public class Healer {
                 int targetID = -1;
                 Location targetLoc = null;
                 if(gc.isHealReady(id)) {
-                    for (int j = 0; j < friends.size(); j++) {
-                        Unit friend = friends.get(j);
+                    for (int i = 0; i < friends.size(); i++) {
+                        Unit friend = friends.get(i);
                         if (friend.health() < minhealth) {
                             minhealth = friend.health();
                             targetID = friend.id();
@@ -44,11 +45,11 @@ public class Healer {
                     long closestEnemyDistance = 9999l;
                     MapLocation closestEnemyLoc = null;  // If this is null at the end, indicates sees no bad guys.
 
-                    for (int j = 0; i < notFriends.size(); i++) {
-                        long currentDist = currentHealer.location().mapLocation().distanceSquaredTo(notFriends.get(j).location().mapLocation());
+                    for (int i = 0; i < notFriends.size(); i++) {
+                        long currentDist = currentHealer.location().mapLocation().distanceSquaredTo(notFriends.get(i).location().mapLocation());
                         if (currentDist < closestEnemyDistance) {
                             closestEnemyDistance = currentDist;
-                            closestEnemyLoc = notFriends.get(j).location().mapLocation();
+                            closestEnemyLoc = notFriends.get(i).location().mapLocation();
                         }
                     }
 

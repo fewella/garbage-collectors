@@ -418,6 +418,34 @@ class MapAnalysis {
         }
         baseLocation = new MapLocation(Planet.Earth, maxX, maxY);
     }
+
+    public static MapLocation[] computeLaunchingLocations(int launchingLocations) {
+        MapLocation[] locs = new MapLocation[launchingLocations];
+        //distance from base: 3-6 tiles
+        int x0 = baseLocation.getX();
+        int y0 = baseLocation.getY();
+        int minX = x0 - 6;
+        int minY = y0 - 6;
+        int maxX = x0 + 6;
+        int maxY = y0 + 6;
+        int i = 0;
+        for(int row = minY; row < maxY; row++ ){
+            for(int col = minX; col < maxX; col++) {
+                if(col >= 0 && row >= 0 && col < Player.mapEarth.getWidth() && row < Player.mapEarth.getHeight()) { // If on the map
+                    if(passabilityMatEarth[row][col] == 1) { // If legal spot
+                        if(Math.abs(col-x0) >= 3 && Math.abs(row-y0) >= 3) { //If far enough away from base
+                            locs[i++] = new MapLocation(Planet.Earth, col, row);
+                            launchingLocations--;
+                            if(launchingLocations == 0)
+                                return locs;
+                        }
+                    }
+                }
+            }
+        }
+        return locs;
+    }
+
     private static void baseFactoryQueue(MapLocation baseLocation, short[][] baseMat, short[][] passMat, short[][] karbMat){
         //Returns a priorityQueue of locations to build factories
         //Priority based on distance to center and lost Karbonite
