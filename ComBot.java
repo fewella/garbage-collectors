@@ -1,4 +1,5 @@
 import bc.*;
+import java.util.*;
 // import the API.
 // See xxx for the javadocs.
 
@@ -13,6 +14,8 @@ class ComBot {
 	static int[] canHit = new int[200];
 	static int[] healths = new int[200];
 	static int enemies = 0;
+	static int hitters = 0;
+	static Unit[] hitter = new Unit[200];
 
 	/*
 	 * shooting priorities: 1. Things that can hit you 2. Ties broken by health
@@ -28,6 +31,12 @@ class ComBot {
 		return d1 * d1 + d2 * d2;
 	}
 
+	static int d2m2(MapLocation a, MapLocation b) {
+		int d1 = Math.max(0, Math.abs(a.getX() - b.getX()) - 2);
+		int d2 = Math.max(0, Math.abs(a.getY() - b.getY()) - 2);
+		return d1 * d1 + d2 * d2;
+	}
+
 	static boolean robot(Unit u) {
 		return u.unitType() != UnitType.Rocket && u.unitType() != UnitType.Factory;
 	}
@@ -39,7 +48,7 @@ class ComBot {
 		MapLocation en = u.location().mapLocation();
 		MapLocation pos = me.location().mapLocation();
 		int d = d2(en, pos);
-		if (d > me.attackRange() || d<=10)
+		if (d > me.attackRange() || d <= 10)
 			return 99999;
 		int pri = (int) (3 * healths[e]);
 		if (robot(u) && Math.abs(u.damage()) > 0) {
@@ -64,7 +73,7 @@ class ComBot {
 					}
 				}
 				if (shoot >= 0) {
-					//System.out.println(myR[i].location().mapLocation().distanceSquaredTo(enemy[shoot].location().mapLocation()));
+					// System.out.println(myR[i].location().mapLocation().distanceSquaredTo(enemy[shoot].location().mapLocation()));
 					gc.attack(myR[i].id(), enemy[shoot].id());
 					healths[shoot] -= myR[i].damage();
 				}
@@ -77,6 +86,7 @@ class ComBot {
 		gc = gameC;
 		enemies = 0;
 		rangers = 0;
+		hitters = 0;
 		VecUnit us = gc.units();
 		for (long i = us.size() - 1; i >= 0; i--) {
 			Unit u = us.get(i);
@@ -95,17 +105,69 @@ class ComBot {
 				MapLocation m = mine.get(i).location().mapLocation();
 				for (int k = 0; k < enemies; k++) {
 					if (robot(enemy[k]) && enemy[k].damage() > 0
-							&& d2m(m, enemy[k].location().mapLocation()) <= enemy[k].abilityRange()) {
+							&& d2m(m, enemy[k].location().mapLocation()) <= enemy[k].attackRange()) {
 						canHit[k]++;
 					}
 				}
 			}
 		}
 		shootPeople();
+		ArrayList<MapLocation> targs = new ArrayList<MapLocation>(enemies);
+		VecUnit vu = Player.map.getInitial_units();
+		for (long i = vu.size() - 1; i >= 0; i--) {
+			Unit u = vu.get(i);
+			if (u.team() != gc.team()) {
+				targs.add(u.location().mapLocation());
+			}
+		}
+		for (int i = 0; i < enemies; i++) {
+			if (healths[i] > 0) {
+				targs.add(enemy[i].location().mapLocation());
+				if (robot(enemy[i]) && enemy[i].damage() > 0 && canHit[i] < 2) {
+					hitter[hitters++] = enemy[i];
+				}
+			}
+		}
+		int[][] bfs = MapAnalysis.BFS(targs);
 		for (int i = 0; i < rangers; i++) {
-			int rng = (int) (Math.random() * 8);
-			if (gc.isMoveReady(myR[i].id()) && gc.canMove(myR[i].id(), dirs[rng])) {
-				gc.moveRobot(myR[i].id(), dirs[rng]);
+			if (gc.isMoveReady(myR[i].id())) {
+				int best = -1;
+				int val = 99999;
+				MapLocation myloc = myR[i].location().mapLocation();
+				for (int d = 0; d < 9; d++) {
+					if (gc.canMove(myR[i].id(), dirs[d])) {
+						MapLocation nloc = myloc.add(dirs[d]);
+						int v = 0;
+						for (int k = 0; k < hitters; k++) {
+							if (d2m2(nloc, hitter[k].location().mapLocation()) <= hitter[k].attackRange()
+									&& canHit[k] == 0
+									|| d2m(myloc, hitter[k].location().mapLocation()) <= hitter[k].attackRange()) {
+								v++;
+							}
+						}
+						v *= 1000;
+						if (gc.isAttackReady(myR[i].id())) {
+							v += bfs[nloc.getY()][nloc.getX()];
+						} else {
+							int mind = 999;
+							for (int k = 0; k < enemies; k++) {
+								mind = Math.min(mind, d2(nloc, enemy[k].location().mapLocation()));
+							}
+							if (mind<=myR[i].attackRange()) {
+								v-=mind;
+							} else {
+								v+=mind;
+							}
+						}
+						if (v<val) {
+							val=v;
+							best=d;
+						}
+					}
+				}
+				if (best!=-1) {
+					gc.moveRobot(myR[i].id(), dirs[best]);
+				}
 			}
 		}
 		shootPeople();
