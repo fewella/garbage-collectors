@@ -33,9 +33,10 @@ public class Player {
             //queue research
             gc.queueResearch(UnitType.Ranger);
             gc.queueResearch(UnitType.Ranger);
+            gc.queueResearch(UnitType.Ranger);
             gc.queueResearch(UnitType.Worker);
             gc.queueResearch(UnitType.Rocket);
-            gc.queueResearch(UnitType.Ranger);
+            
         }
         catch(Exception e){
             System.out.println("Exception during setup");
