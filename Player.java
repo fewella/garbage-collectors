@@ -69,7 +69,7 @@ public class Player {
                         rocket.add(temp);
                 }
                 MapAnalysis.turn();
-                Econ.turn(gc, worker, factory);
+                Econ.turn(gc);
                 ComBot.turn(gc);
                 gc.nextTurn();
             }
