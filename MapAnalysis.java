@@ -43,27 +43,32 @@ class MapAnalysis {
     //public methods
     //feel free to use them
     public static int[][] BFS(ArrayList<MapLocation> destinations){
+        return BFS(destinations, true);
+    }
+    public static int[][] BFS(ArrayList<MapLocation> destinations, boolean structures){
         Queue<Integer> xq = new LinkedList<>();
         Queue<Integer> yq = new LinkedList<>();
         int h = (int)Player.map.getHeight();
         int w = (int)Player.map.getWidth();
         int[][] out = cloneMat(blankBFS);
         //add factories, rockets, (workers for now)
-        for(Unit wo : Player.worker){
-            Location loc = wo.location();
-            if(!loc.isOnMap()) continue;
-            MapLocation mapLoc = loc.mapLocation();
-            out[mapLoc.getY()][mapLoc.getX()] = 9999;
-        }
-        for(Unit f : Player.factory){
-            MapLocation mapLoc = f.location().mapLocation();
-            out[mapLoc.getY()][mapLoc.getX()] = 9999;
-        }
-        for(Unit r : Player.rocket){
-            Location loc = r.location();
-            if(!loc.isOnMap()) continue;
-            MapLocation mapLoc = loc.mapLocation();
-            out[mapLoc.getY()][mapLoc.getX()] = 9999;
+        if(structures){
+            for(Unit wo : Player.worker){
+                Location loc = wo.location();
+                if(!loc.isOnMap()) continue;
+                MapLocation mapLoc = loc.mapLocation();
+                out[mapLoc.getY()][mapLoc.getX()] = 9999;
+            }
+            for(Unit f : Player.factory){
+                MapLocation mapLoc = f.location().mapLocation();
+                out[mapLoc.getY()][mapLoc.getX()] = 9999;
+            }
+            for(Unit r : Player.rocket){
+                Location loc = r.location();
+                if(!loc.isOnMap()) continue;
+                MapLocation mapLoc = loc.mapLocation();
+                out[mapLoc.getY()][mapLoc.getX()] = 9999;
+            }
         }
         //add initial locations
         for(MapLocation mapLoc : destinations){
@@ -240,6 +245,11 @@ class MapAnalysis {
                     blankBFS[y][x] = -1;
                 }
             }
+        }
+        //first Factory
+        if(Player.gc.planet() == Planet.Earth){
+            initialFactory();
+            Econ.stage = 0;
         }
     }
     public static void turn(){
@@ -431,6 +441,68 @@ class MapAnalysis {
     }
     private static void landingLocationsComputeInitial(){
         //TODO
+    }
+    private static void initialFactory(){
+        VecUnit workers = Player.mapEarth.getInitial_units();
+        ArrayList<int[][]> BFSMats = new ArrayList<>();
+        ArrayList<MapLocation> enemyWorkers = new ArrayList<>();
+        ArrayList<Integer> friendlyWorkers = new ArrayList<>();
+        for(int i = 0; i < workers.size(); i++){
+            Unit worker = workers.get(i);
+            if(worker.team() == Player.gc.team()){
+                friendlyWorkers.add(worker.id());
+                ArrayList<MapLocation> temp = new ArrayList<>();
+                temp.add(worker.location().mapLocation());
+                BFSMats.add(BFS(temp, false));
+            }
+            else{
+                enemyWorkers.add(worker.location().mapLocation());
+            }
+        }
+        //calculate optimal locations
+        int min = 9999;
+        ArrayList<Integer> candX = new ArrayList<>();
+        ArrayList<Integer> candY = new ArrayList<>();
+        for(int y = 0; y < Player.mapEarth.getHeight(); y++){
+            for(int x = 0; x < Player.mapEarth.getWidth(); x++){
+                int total = 0;
+                for(int[][] Mat : BFSMats)
+                    total += Mat[y][x];
+                if(total < min){
+                    min = total;
+                    candX = new ArrayList<>();
+                    candY = new ArrayList<>();
+                }
+                else if(total == min){
+                    candX.add(x);
+                    candY.add(y);
+                }
+            }
+        }
+        //tiebreaks - find location
+        int[][] combotBFSMat = BFS(enemyWorkers, false);
+        min = 9999;
+        int minX = 3;
+        int minY = 3;
+        for(int i = 0; i < candX.size(); i++){
+            int x = candX.get(i);
+            int y = candY.get(i);
+            int val2 = combotBFSMat[y][x];
+            if(val2 < min){
+                min = val2;
+                minX = x;
+                minY = y;
+            }
+        }
+        //create matrix
+        ArrayList<MapLocation> factory = new ArrayList<>();
+        factory.add(new MapLocation(Planet.Earth, minX, minY));
+        int[][] BFSMat = BFS(factory, false);
+        for(int id : friendlyWorkers)
+            Econ.workerBFSMats.put(id, BFSMat);
+    }
+    private static void baseFactory(){
+        ///TODO
     }
     //Mars only
     private static void karbonite3dMat(short[][] passMat){
