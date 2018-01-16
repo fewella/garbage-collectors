@@ -27,15 +27,15 @@ class Econ {
              }
          }
          VecUnit v=gc.senseNearbyUnitsByType(u.location().mapLocation(),2,UnitType.Factory);
-         for (long k=v.size()-1; k>=0; k--) {
-            if (gc.canBuild(u.id(),v.get(k).id())) {
-               gc.build(u.id(),v.get(k).id());
+         for (long f=v.size()-1; f>=0; f--) {
+            if (gc.canBuild(u.id(),v.get(f).id())) {
+               gc.build(u.id(),v.get(f).id());
                break;
             }
          }
          //if( gc.canSenseLocation(MapAnalysis.factoryQueue.peek().x) && )
          moveTo(gc, u, MapAnalysis.factoryQueue.peek().x);
-      } 
+      } 	
       int rsize = Player.ranger.size();
       while (factory.peek() != null) {
          Unit u=factory.remove();
