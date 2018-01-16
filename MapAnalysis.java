@@ -42,6 +42,36 @@ class MapAnalysis {
 
     //public methods
     //feel free to use them
+    public static MapLocation tempWorkerLoc(Unit v){
+        int tries = 0;
+        int bestScore = 0;
+        MapLocation bestLoc = v.location().mapLocation();
+        while(tries < 50){
+            int x = MapAnalysis.baseLocation.getX() + (int)(20*Math.random())-10;
+            int y = MapAnalysis.baseLocation.getY() + (int)(20*Math.random())-10;
+            if(!MapAnalysis.connectivity(Planet.Earth, x, y, MapAnalysis.baseLocation.getX(), MapAnalysis.baseLocation.getY()) || MapAnalysis.passabilityMatEarth[y][x] == 0)
+                continue;
+            int score = 0;
+            for(int dy = -1; dy <= 1; dy++){
+                for(int dx = -1; dx <= 1; dx++){
+                    if(MapAnalysis.passabilityMatEarth[y][x] == 1)
+                        score += 100;
+                }
+            }
+            VecUnit initW = Player.mapEarth.getInitial_units();
+            for(int i = 0; i < initW.size(); i++){
+                if(initW.get(i).team()!=Player.gc.team())
+                    score += (int)Math.sqrt(MapAnalysis.baseLocation.distanceSquaredTo(initW.get(i).location().mapLocation()));
+            }
+            score += 3*Math.max(0, 20-(int)Math.sqrt(MapAnalysis.baseLocation.distanceSquaredTo(MapAnalysis.baseLocation)));
+            if(score > bestScore){
+                bestScore = score;
+                bestLoc = new MapLocation(Planet.Earth, x, y);
+            }
+            tries++;
+        }
+        return bestLoc;
+    }
     public static int[][] BFS(ArrayList<MapLocation> destinations){
         return BFS(destinations, true);
     }
