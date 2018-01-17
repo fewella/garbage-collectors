@@ -15,6 +15,8 @@ class Econ {
       long karb=gc.karbonite();
       //if( workers.size() == 0)
     //	  System.out.println("no workers");
+      boolean madeRocket = false;
+      boolean replicate = false;
       for(Unit u : Player.worker) {
          if(!u.location().isOnMap()) continue;
          MapLocation mapLoc = u.location().mapLocation();
@@ -27,6 +29,29 @@ class Econ {
                }
             }
          }
+         VecUnit nearRock = gc.senseNearbyUnitsByType(mapLoc, 2, UnitType.Rocket);
+         if( nearRock.size() != 0 ) {
+        	 if(gc.canBuild(u.id(), nearRock.get(0).id()))
+        		 gc.build(u.id(), nearRock.get(0).id());
+        	 else if(gc.canLoad(nearRock.get(0).id(), u.id()))
+        		 gc.load(nearRock.get(0).id(), u.id());
+         }
+         if( gc.round() > 200 && !madeRocket && Player.rocket.size() == 0 && Player.factory.size() >= Player.worker.size() ) {
+        	 for( int k = 0; k < 8; k++) {
+        		 if(gc.canBlueprint(u.id(), UnitType.Rocket, dirs[k])) {
+        			 gc.blueprint(u.id(), UnitType.Rocket, dirs[k]);
+        			 madeRocket = true;
+        		 }
+        	 }
+         }
+         if( (Player.worker.size() <= Player.factory.size() && gc.round() < 150) || Player.worker.size() < 3) {
+        	 for( int k = 0; k < 8; k++) {
+        		 if( gc.canReplicate(u.id(), dirs[k])) {
+        			 gc.replicate(u.id(), dirs[k]);
+        			 replicate = true; 
+        		 }
+        	 }
+         }
          if(!seen.containsKey(u.id())){
             ArrayList<MapLocation> temp = new ArrayList<>();
             temp.add(MapAnalysis.tempWorkerLoc(u));
@@ -34,7 +59,7 @@ class Econ {
             seen.put(u.id(), true);
             System.out.println("Sent new worker " + u.id() + " to x:" + temp.get(0).getX() + ", y:" + temp.get(0).getY());
          }
-         if(workerBFSMats.get(u.id()) != null){
+         if(workerBFSMats.get(u.id()) != null && nearRock.size() == 0){
             Direction minD = Direction.Center;
             int min = 9999;
             for (Direction d : dirs) {
@@ -67,10 +92,15 @@ class Econ {
                }
             }
             else{
-               if(gc.isMoveReady(u.id()) && gc.canMove(u.id(), minD))
-                  gc.moveRobot(u.id(), minD);
-               if(min == 0){
-                  workerBFSMats.put(u.id(), null);
+               boolean canLoad = true;
+               if(nearRock.size() != 0)
+            	   canLoad = stayByRocket(gc, u, nearRock.get(0));
+               if(canLoad) {
+            	   if(gc.isMoveReady(u.id()) && gc.canMove(u.id(), minD))
+            		   gc.moveRobot(u.id(), minD);
+            	   if(min == 0){
+            		   workerBFSMats.put(u.id(), null);
+            	   }
                }
             }
          }
@@ -99,11 +129,11 @@ class Econ {
                System.out.println("Sent worker " + v.id() + " to x:" + temp.get(0).getX() + ", y:" + temp.get(0).getY());
             }
          }
-         else if(karb > 300 && Player.ranger.size() > 10){
+         /*else if(karb > 300 && Player.ranger.size() > 10){
             if (gc.canProduceRobot(u.id(), UnitType.Worker))
                gc.produceRobot(u.id(), UnitType.Worker);
-         }
-         else if(Player.ranger.size()/8 > Player.healer.size()){
+         }*/
+        else if(Player.ranger.size()/8 > Player.healer.size()){
             if (gc.canProduceRobot(u.id(), UnitType.Healer))
                gc.produceRobot(u.id(), UnitType.Healer);
          }
@@ -114,5 +144,15 @@ class Econ {
          for (int k=0; k<8; k++)
             if (gc.canUnload(u.id(),dirs[k])) gc.unload(u.id(),dirs[k]);
       }
+   }
+   public static boolean stayByRocket(GameController gc, Unit u, Unit r) {
+	   if( !u.location().mapLocation().isAdjacentTo(r.location().mapLocation()) ) {
+		   if(gc.isMoveReady(u.id()) && gc.canMove(u.id(), u.location().mapLocation().directionTo(r.location().mapLocation()))) {
+			   gc.moveRobot(u.id(), u.location().mapLocation().directionTo(r.location().mapLocation()));
+			   return false;
+		   }
+		   return true;
+	   }
+	   return true;
    }
 }
