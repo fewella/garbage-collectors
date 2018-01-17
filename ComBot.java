@@ -1,4 +1,5 @@
 import bc.*;
+
 import java.util.*;
 
 // import the API.
@@ -20,9 +21,11 @@ class Snipe {
 
 class ComBot {
 	static Direction[] dirs = Direction.values();
+	static Random rng = new Random(7);
 	static GameController gc;
-	static int fights = 8;
-	static MapLocation[] fight = new MapLocation[fights];
+	static int fights = 5;
+	static MapLocation[] fight = new MapLocation[12];
+	static int[] fightR = new int[12];
 	static Unit[] myR = new Unit[500];
 	static int rangers = 0;
 	static Unit[] enemy = new Unit[300];
@@ -34,14 +37,26 @@ class ComBot {
 	static int snipePos = -1;
 	static Snipe[] snipe = new Snipe[20];
 	static int[][] bfs;
+	static Team ot;
 
 	/*
 	 * shooting priorities: 1. Things that can hit you 2. Ties broken by health
 	 * 3. Ties broken by damage 4. Ties broken by closer
 	 */
-	static void init() {
+	static void init(GameController gameC) {
+		gc = gameC;
+		ot = gc.team() == Team.Red ? Team.Blue : Team.Red;
 		for (int i = 0; i < snipe.length; i++) {
 			snipe[i] = new Snipe(10, null);
+		}
+		VecUnit vu = Player.map.getInitial_units();
+		int p = 0;
+		for (long i = vu.size() - 1; i >= 0; i--) {
+			Unit u = vu.get(i);
+			if (u.team() != gc.team()) {
+				fightR[p] = 200;
+				fight[p++] = u.location().mapLocation();
+			}
 		}
 	}
 
@@ -51,24 +66,25 @@ class ComBot {
 				snipePos++;
 				snipePos %= snipe.length;
 				snipe[snipePos].set((int) enemy[i].maxHealth(), enemy[i].location().mapLocation());
-				
+
 			}
 		}
-		if (gc.researchInfo().getLevel(UnitType.Ranger) >= 3) {
+		if (gc.researchInfo().getLevel(UnitType.Ranger) >= 3 && snipePos != -1) {
 			int ids[] = new int[10];
 			int i = 0;
 			for (int sp = snipePos; sp != (snipePos + 1) % snipe.length; sp = (sp + snipe.length - 1) % snipe.length) {
-				if (snipe[sp].loc==null) continue;
+				if (snipe[sp].loc == null)
+					continue;
 				int found = 0;
 				while (i < rangers) {
 					if (myR[i].abilityCooldown() < 10 && bfs[myR[i].location().mapLocation().getY()][myR[i].location()
 							.mapLocation().getY()] > 9) {
 						ids[found++] = myR[i].id();
 						if (found == snipe[sp].shots) {
-							for (int k=0; k<found; k++) {
+							for (int k = 0; k < found; k++) {
 								gc.beginSnipe(ids[k], snipe[sp].loc);
 							}
-							snipe[sp].loc=null;
+							snipe[sp].loc = null;
 						}
 					}
 					i++;
@@ -138,8 +154,25 @@ class ComBot {
 
 	}
 
-	static void turn(GameController gameC) {
-		gc = gameC;
+	static void resetFights() {
+		int r = (int) gc.round();
+		for (int i = 0; i < fights; i++) {
+			if (r - fightR[i] > 100 || fight[i] == null || (gc.senseNearbyUnitsByTeam(fight[i], 0, gc.team()).size()!=0)) {
+				
+				while (true) {
+					int x = rng.nextInt((int) Player.map.getWidth());
+					int y = rng.nextInt((int) Player.map.getHeight());
+					if (MapAnalysis.passabilityMat[y][x] != 0) {
+						fight[i] = new MapLocation(gc.planet(), x, y);
+						fightR[i] = r;
+						break;
+					}
+				}
+			}
+		}
+	}
+
+	static void turn() {
 		enemies = 0;
 		rangers = 0;
 		hitters = 0;
@@ -168,12 +201,11 @@ class ComBot {
 			}
 		}
 		shootPeople();
-		ArrayList<MapLocation> targs = new ArrayList<MapLocation>(enemies);
-		VecUnit vu = Player.map.getInitial_units();
-		for (long i = vu.size() - 1; i >= 0; i--) {
-			Unit u = vu.get(i);
-			if (u.team() != gc.team()) {
-				targs.add(u.location().mapLocation());
+		resetFights();
+		ArrayList<MapLocation> targs = new ArrayList<MapLocation>(enemies + 12);
+		for (int i = 0; i < fight.length; i++) {
+			if (fight[i] != null) {
+				targs.add(fight[i]);
 			}
 		}
 		for (int i = 0; i < enemies; i++) {
@@ -200,6 +232,9 @@ class ComBot {
 									|| d2m(myloc, hitter[k].location().mapLocation()) <= hitter[k].attackRange()) {
 								v++;
 							}
+						}
+						if (gc.senseNearbyUnitsByTeam(nloc, 50, ot).size() > 0) {
+							v--;
 						}
 						v *= 1000;
 						if (gc.isAttackReady(myR[i].id())) {
