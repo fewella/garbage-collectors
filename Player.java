@@ -13,13 +13,6 @@ public class Player {
     static Queue<Unit> worker, knight, ranger, healer, mage, factory, rocket;
 
     public static void main(String[] args) {
-        worker = new LinkedList<>();
-        knight = new LinkedList<>();
-        ranger = new LinkedList<>();
-        healer = new LinkedList<>();
-        mage = new LinkedList<>();
-        factory = new LinkedList<>();
-        rocket = new LinkedList<>();
         ComBot.init();
         try {
             //connect to the manager, starting the game
@@ -48,6 +41,13 @@ public class Player {
                 //game cycle
                 arrayEarth = gc.getTeamArray(Planet.Earth);
                 arrayMars = gc.getTeamArray(Planet.Mars);
+                worker = new LinkedList<>();
+                knight = new LinkedList<>();
+                ranger = new LinkedList<>();
+                healer = new LinkedList<>();
+                mage = new LinkedList<>();
+                factory = new LinkedList<>();
+                rocket = new LinkedList<>();
 
                 VecUnit units = gc.myUnits();
                 //System.out.println("Units "+ units.size());

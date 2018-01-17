@@ -6,23 +6,32 @@ import java.util.*;
 class Econ {
    static Direction[] dirs = Direction.values();
    static HashMap<Integer, int[][]> workerBFSMats;
+   static ArrayList<MapLocation> workerLocs;
    static HashMap<Integer, Boolean> seen;
    static int stage;
-   static void turn(GameController gc, Queue<Unit> workers, Queue<Unit> factory) {
+   static void turn(GameController gc) {
       //VecUnit us=gc.myUnits();
       long karb=gc.karbonite();
       //if( workers.size() == 0)
     //	  System.out.println("no workers");
-      for(Unit u : workers) {
+      for(Unit u : Player.worker) {
          if(!u.location().isOnMap()) continue;
          MapLocation mapLoc = u.location().mapLocation();
          //movement
+         for (int k=0; k<8; k++) {
+            if(gc.canHarvest(u.id(), dirs[k])) {
+               if(gc.round() > 1 && karb < 400) {
+                  gc.harvest(u.id(), dirs[k]);
+                  break;
+               }
+            }
+         }
          if(!seen.containsKey(u.id())){
             ArrayList<MapLocation> temp = new ArrayList<>();
             temp.add(MapAnalysis.tempWorkerLoc(u));
             workerBFSMats.put(u.id(), MapAnalysis.BFS(temp));
             seen.put(u.id(), true);
-            System.out.println("Sent worker " + u.id() + " to x:" + temp.get(0).getX() + ", y:" + temp.get(0).getY());
+            System.out.println("Sent new worker " + u.id() + " to x:" + temp.get(0).getX() + ", y:" + temp.get(0).getY());
          }
          if(workerBFSMats.get(u.id()) != null){
             Direction minD = Direction.Center;
@@ -78,26 +87,28 @@ class Econ {
             }
          }
       }   
-      while (factory.peek() != null) {
-         Unit u=factory.remove();
+      for (Unit u : Player.factory) {
          if(stage == 0){
             stage = 1;
-            for(Unit v : workers){
+            for(Unit v : Player.worker){
                ArrayList<MapLocation> temp = new ArrayList<>();
                temp.add(MapAnalysis.tempWorkerLoc(v));
                workerBFSMats.put(v.id(), MapAnalysis.BFS(temp));
+               System.out.println("Sent worker " + v.id() + " to x:" + temp.get(0).getX() + ", y:" + temp.get(0).getY());
             }
          }
          if(Player.ranger.size() < 3) {
             if (gc.canProduceRobot(u.id(), UnitType.Ranger))
                gc.produceRobot(u.id(), UnitType.Ranger);
          }
-         if(karb > 300){
+         else if(karb > 300){
             if (gc.canProduceRobot(u.id(), UnitType.Worker))
                gc.produceRobot(u.id(), UnitType.Worker);
          }
-         if (gc.canProduceRobot(u.id(), UnitType.Ranger))
-            gc.produceRobot(u.id(), UnitType.Ranger);
+         else if(Player.ranger.size()/8 > Player.healer.size()){
+            if (gc.canProduceRobot(u.id(), UnitType.Healer))
+               gc.produceRobot(u.id(), UnitType.Healer);
+         }
          for (int k=0; k<8; k++)
             if (gc.canUnload(u.id(),dirs[k])) gc.unload(u.id(),dirs[k]);
       }

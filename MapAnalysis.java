@@ -43,9 +43,9 @@ class MapAnalysis {
     //public methods
     //feel free to use them
     public static MapLocation tempWorkerLoc(Unit v){
-        int tries = 0;
         int bestScore = 0;
         MapLocation bestLoc = v.location().mapLocation();
+        int tries = 0;
         while(tries < 50){
             int x = MapAnalysis.baseLocation.getX() + (int)(20*Math.random())-10;
             int y = MapAnalysis.baseLocation.getY() + (int)(20*Math.random())-10;
@@ -58,32 +58,44 @@ class MapAnalysis {
             int score = -9999;
             for(int dy = -2; dy <= 2; dy++){
                 for(int dx = -2; dx <= 2; dx++){
+                    if(x+dx < 0 || y+dy < 0 || x+dx >= Player.mapEarth.getWidth() || y+dy >= Player.mapEarth.getHeight())
+                        continue;
                     if(MapAnalysis.passabilityMatEarth[y+dy][x+dx] == 1) {
                         int temp = Math.abs(dx*dy);
                         if(temp == 0)
-                            score += 8;
+                            score += 0;
                         else
-                            score += 8/temp;
+                            score += 0/temp;
                     }
                 }
             }
+            MapLocation loc = new MapLocation(Planet.Earth, x, y);
             VecUnit initW = Player.mapEarth.getInitial_units();
             int minD = 9999;
             for(int i = 0; i < initW.size(); i++){
                 if(initW.get(i).team()!=Player.gc.team()){
-                    int d = (int)Math.sqrt(MapAnalysis.baseLocation.distanceSquaredTo(initW.get(i).location().mapLocation()));
+                    int d = (int)Math.sqrt(loc.distanceSquaredTo(initW.get(i).location().mapLocation()));
                     if(d < minD)
                         minD = d;
                 }
             }
-            score += minD;
-            score -= (int)Math.sqrt(MapAnalysis.baseLocation.distanceSquaredTo(MapAnalysis.baseLocation));
+            score += 5*minD;
+            score -= 2*(int)Math.sqrt(loc.distanceSquaredTo(MapAnalysis.baseLocation));
+            minD = 9999;
+            for(MapLocation other : Econ.workerLocs){
+                int d = (int)Math.sqrt(loc.distanceSquaredTo(other));
+                if(d < minD)
+                    minD = d;
+            }
+            score += 10*Math.min(0, minD-6);
+            System.out.println("x:" + x + " y:" + y + " " + score);
             if(score > bestScore){
                 bestScore = score;
-                bestLoc = new MapLocation(Planet.Earth, x, y);
+                bestLoc = loc;
             }
             tries++;
         }
+        Econ.workerLocs.add(bestLoc);
         return bestLoc;
     }
     public static int[][] BFS(ArrayList<MapLocation> destinations){
@@ -567,12 +579,11 @@ class MapAnalysis {
             }
         }
         //create matrix
-        ArrayList<MapLocation> factory = new ArrayList<>();
-        factory.add(new MapLocation(Planet.Earth, minX, minY));
-        int[][] BFSMat = BFS(factory, false);
+        Econ.workerLocs = new ArrayList<>();
+        Econ.workerLocs.add(new MapLocation(Planet.Earth, minX, minY));
+        int[][] BFSMat = BFS(Econ.workerLocs, false);
         Econ.workerBFSMats = new HashMap<>();
         Econ.seen = new HashMap<>();
-        Econ.stage = 0;
         for(int id : friendlyWorkers) {
             Econ.workerBFSMats.put(id, BFSMat);
             Econ.seen.put(id, true);
