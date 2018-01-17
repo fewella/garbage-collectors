@@ -20,6 +20,7 @@ public class Player {
         mage = new LinkedList<>();
         factory = new LinkedList<>();
         rocket = new LinkedList<>();
+        ComBot.init();
         try {
             //connect to the manager, starting the game
             gc = new GameController();
