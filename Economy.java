@@ -2,6 +2,7 @@
 // See xxx for the javadocs.
 import bc.*;
 import java.util.*;
+
 class Econ {
    static Direction[] dirs = Direction.values();
    static HashMap<Integer, int[][]> workerBFSMats;

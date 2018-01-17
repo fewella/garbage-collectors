@@ -1,26 +1,82 @@
 import bc.*;
 import java.util.*;
+
 // import the API.
 // See xxx for the javadocs.
+class Snipe {
+	public Snipe(int health, MapLocation loc1) {
+		loc = loc1;
+		shots = (health + 39) / 40;
+	}
+
+	void set(int health, MapLocation loc1) {
+		loc = loc1;
+		shots = (health + 39) / 40;
+	}
+
+	int shots;
+	MapLocation loc;
+}
 
 class ComBot {
 	static Direction[] dirs = Direction.values();
 	static GameController gc;
 	static int fights = 8;
 	static MapLocation[] fight = new MapLocation[fights];
-	static Unit[] myR = new Unit[100];
+	static Unit[] myR = new Unit[500];
 	static int rangers = 0;
-	static Unit[] enemy = new Unit[200];
-	static int[] canHit = new int[200];
-	static int[] healths = new int[200];
+	static Unit[] enemy = new Unit[300];
+	static int[] canHit = new int[300];
+	static int[] healths = new int[300];
 	static int enemies = 0;
 	static int hitters = 0;
 	static Unit[] hitter = new Unit[200];
+	static int snipePos = -1;
+	static Snipe[] snipe = new Snipe[20];
+	static int[][] bfs;
 
 	/*
 	 * shooting priorities: 1. Things that can hit you 2. Ties broken by health
 	 * 3. Ties broken by damage 4. Ties broken by closer
 	 */
+	static void init() {
+		for (int i = 0; i < snipe.length; i++) {
+			snipe[i] = new Snipe(10, null);
+		}
+	}
+
+	static void snipe() {
+		for (int i = 0; i < enemies; i++) {
+			if (!robot(enemy[i]) || enemy[i].unitType() == UnitType.Worker && enemy[i].movementHeat() == 0) {
+				snipePos++;
+				snipePos %= snipe.length;
+				snipe[snipePos].set((int) enemy[i].maxHealth(), enemy[i].location().mapLocation());
+				
+			}
+		}
+		if (gc.researchInfo().getLevel(UnitType.Ranger) >= 3) {
+			int ids[] = new int[10];
+			int i = 0;
+			for (int sp = snipePos; sp != (snipePos + 1) % snipe.length; sp = (sp + snipe.length - 1) % snipe.length) {
+				if (snipe[sp].loc==null) continue;
+				int found = 0;
+				while (i < rangers) {
+					if (myR[i].abilityCooldown() < 10 && bfs[myR[i].location().mapLocation().getY()][myR[i].location()
+							.mapLocation().getY()] > 9) {
+						ids[found++] = myR[i].id();
+						if (found == snipe[sp].shots) {
+							for (int k=0; k<found; k++) {
+								gc.beginSnipe(ids[k], snipe[sp].loc);
+							}
+							snipe[sp].loc=null;
+						}
+					}
+					i++;
+				}
+			}
+		}
+	}
+
 	static int d2(MapLocation a, MapLocation b) {
 		return (a.getX() - b.getX()) * (a.getX() - b.getX()) + (a.getY() - b.getY()) * (a.getY() - b.getY());
 	}
@@ -128,7 +184,7 @@ class ComBot {
 				}
 			}
 		}
-		int[][] bfs = MapAnalysis.BFS(targs);
+		bfs = MapAnalysis.BFS(targs);
 		for (int i = 0; i < rangers; i++) {
 			if (gc.isMoveReady(myR[i].id())) {
 				int best = -1;
@@ -153,23 +209,25 @@ class ComBot {
 							for (int k = 0; k < enemies; k++) {
 								mind = Math.min(mind, d2(nloc, enemy[k].location().mapLocation()));
 							}
-							if (mind<=myR[i].attackRange()) {
-								v-=mind;
+							if (mind <= myR[i].attackRange()) {
+								v -= mind;
 							} else {
-								v+=mind;
+								v += mind;
 							}
 						}
-						if (v<val) {
-							val=v;
-							best=d;
+						if (v < val) {
+							val = v;
+							best = d;
 						}
 					}
 				}
-				if (best!=-1) {
+				if (best != -1) {
 					gc.moveRobot(myR[i].id(), dirs[best]);
 				}
 			}
 		}
 		shootPeople();
+		snipe();
+
 	}
 }

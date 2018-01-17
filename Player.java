@@ -20,6 +20,7 @@ public class Player {
         mage = new LinkedList<>();
         factory = new LinkedList<>();
         rocket = new LinkedList<>();
+        ComBot.init();
         try {
             //connect to the manager, starting the game
             gc = new GameController();
@@ -33,9 +34,10 @@ public class Player {
             //queue research
             gc.queueResearch(UnitType.Ranger);
             gc.queueResearch(UnitType.Ranger);
+            gc.queueResearch(UnitType.Ranger);
             gc.queueResearch(UnitType.Worker);
             gc.queueResearch(UnitType.Rocket);
-            gc.queueResearch(UnitType.Ranger);
+            
         }
         catch(Exception e){
             System.out.println("Exception during setup");
@@ -69,7 +71,7 @@ public class Player {
                         rocket.add(temp);
                 }
                 MapAnalysis.turn();
-                Econ.turn(gc, worker, factory);
+                Econ.turn(gc);
                 ComBot.turn(gc);
                 gc.nextTurn();
             }
