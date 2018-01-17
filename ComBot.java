@@ -23,11 +23,11 @@ class ComBot {
 	static GameController gc;
 	static int fights = 8;
 	static MapLocation[] fight = new MapLocation[fights];
-	static Unit[] myR = new Unit[100];
+	static Unit[] myR = new Unit[500];
 	static int rangers = 0;
-	static Unit[] enemy = new Unit[200];
-	static int[] canHit = new int[200];
-	static int[] healths = new int[200];
+	static Unit[] enemy = new Unit[300];
+	static int[] canHit = new int[300];
+	static int[] healths = new int[300];
 	static int enemies = 0;
 	static int hitters = 0;
 	static Unit[] hitter = new Unit[200];
