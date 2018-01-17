@@ -77,6 +77,7 @@ public class Player {
                 }
                 MapAnalysis.turn();
                 Econ.turn(gc);
+                Rocket.launch(gc);
                 ComBot.turn();
                 gc.nextTurn();
             }
