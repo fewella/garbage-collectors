@@ -188,6 +188,7 @@ class ComBot {
 				myR[rangers++] = u;
 			}
 		}
+		
 		VecUnit mine = gc.myUnits();
 		for (long i = mine.size() - 1; i >= 0; i--) {
 			if (mine.get(i).location().isOnMap()) {

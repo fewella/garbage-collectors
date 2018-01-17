@@ -32,6 +32,8 @@ public class Player {
             gc.queueResearch(UnitType.Worker); //525
             gc.queueResearch(UnitType.Worker); //600
             gc.queueResearch(UnitType.Worker); //675
+            gc.queueResearch(UnitType.Healer); //700
+            gc.queueResearch(UnitType.Healer); //800
             
             ComBot.init(gc);
         }
