@@ -10,6 +10,7 @@ class Econ {
    static HashMap<Integer, Boolean> seen;
    static int stage;
    static void turn(GameController gc) {
+      Collections.shuffle(Arrays.asList(dirs));
       //VecUnit us=gc.myUnits();
       long karb=gc.karbonite();
       //if( workers.size() == 0)
@@ -40,7 +41,8 @@ class Econ {
                MapLocation newLoc = mapLoc.add(d);
                if (newLoc.getX() < 0 || newLoc.getY() < 0 || newLoc.getX() >= Player.mapEarth.getWidth() || newLoc.getY() >= Player.mapEarth.getHeight())
                   continue;
-               if (workerBFSMats.get(u.id())[newLoc.getY()][newLoc.getX()] < min) {
+               int newMin = workerBFSMats.get(u.id())[newLoc.getY()][newLoc.getX()];
+               if (newMin < min && gc.canMove(u.id(), d) || newMin == 0) {
                   min = workerBFSMats.get(u.id())[newLoc.getY()][newLoc.getX()];
                   minD = d;
                }
@@ -88,7 +90,7 @@ class Econ {
          }
       }   
       for (Unit u : Player.factory) {
-         if(stage == 0){
+         if(u.health() == u.maxHealth() && stage == 0){
             stage = 1;
             for(Unit v : Player.worker){
                ArrayList<MapLocation> temp = new ArrayList<>();
@@ -97,17 +99,17 @@ class Econ {
                System.out.println("Sent worker " + v.id() + " to x:" + temp.get(0).getX() + ", y:" + temp.get(0).getY());
             }
          }
-         if(Player.ranger.size() < 3) {
-            if (gc.canProduceRobot(u.id(), UnitType.Ranger))
-               gc.produceRobot(u.id(), UnitType.Ranger);
-         }
-         else if(karb > 300){
+         else if(karb > 300 && Player.ranger.size() > 10){
             if (gc.canProduceRobot(u.id(), UnitType.Worker))
                gc.produceRobot(u.id(), UnitType.Worker);
          }
          else if(Player.ranger.size()/8 > Player.healer.size()){
             if (gc.canProduceRobot(u.id(), UnitType.Healer))
                gc.produceRobot(u.id(), UnitType.Healer);
+         }
+         else{
+            if (gc.canProduceRobot(u.id(), UnitType.Ranger))
+               gc.produceRobot(u.id(), UnitType.Ranger);
          }
          for (int k=0; k<8; k++)
             if (gc.canUnload(u.id(),dirs[k])) gc.unload(u.id(),dirs[k]);

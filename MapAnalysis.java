@@ -43,7 +43,7 @@ class MapAnalysis {
     //public methods
     //feel free to use them
     public static MapLocation tempWorkerLoc(Unit v){
-        int bestScore = 0;
+        int bestScore = -9999;
         MapLocation bestLoc = v.location().mapLocation();
         int tries = 0;
         while(tries < 50){
@@ -55,7 +55,7 @@ class MapAnalysis {
                 continue;
             if(!MapAnalysis.connectivity(Planet.Earth, x, y, MapAnalysis.baseLocation.getX(), MapAnalysis.baseLocation.getY()))
                 continue;
-            int score = -9999;
+            int score = 0;
             for(int dy = -2; dy <= 2; dy++){
                 for(int dx = -2; dx <= 2; dx++){
                     if(x+dx < 0 || y+dy < 0 || x+dx >= Player.mapEarth.getWidth() || y+dy >= Player.mapEarth.getHeight())
@@ -63,9 +63,9 @@ class MapAnalysis {
                     if(MapAnalysis.passabilityMatEarth[y+dy][x+dx] == 1) {
                         int temp = Math.abs(dx*dy);
                         if(temp == 0)
-                            score += 0;
+                            score += 8;
                         else
-                            score += 0/temp;
+                            score += 8/temp;
                     }
                 }
             }
@@ -88,7 +88,6 @@ class MapAnalysis {
                     minD = d;
             }
             score += 10*Math.min(0, minD-6);
-            System.out.println("x:" + x + " y:" + y + " " + score);
             if(score > bestScore){
                 bestScore = score;
                 bestLoc = loc;
@@ -543,6 +542,11 @@ class MapAnalysis {
                 enemyWorkers.add(worker.location().mapLocation());
             }
         }
+        //avoid locations inside workers
+        for(int i = 0; i < workers.size(); i++){
+            MapLocation loc = workers.get(i).location().mapLocation();
+            BFSMats.get(0)[loc.getY()][loc.getX()] = 9999;
+        }
         //calculate optimal locations
         int min = 9999;
         ArrayList<Integer> candX = new ArrayList<>();
@@ -556,6 +560,8 @@ class MapAnalysis {
                     min = total;
                     candX = new ArrayList<>();
                     candY = new ArrayList<>();
+                    candX.add(x);
+                    candY.add(y);
                 }
                 else if(total == min){
                     candX.add(x);
@@ -579,12 +585,13 @@ class MapAnalysis {
             }
         }
         //create matrix
-        Econ.workerLocs = new ArrayList<>();
-        Econ.workerLocs.add(new MapLocation(Planet.Earth, minX, minY));
-        int[][] BFSMat = BFS(Econ.workerLocs, false);
+        ArrayList<MapLocation> temp = new ArrayList<>();
+        temp.add(new MapLocation(Planet.Earth, minX, minY));
+        int[][] BFSMat = BFS(temp, false);
         Econ.workerBFSMats = new HashMap<>();
+        Econ.workerLocs = new ArrayList<>();
         Econ.seen = new HashMap<>();
-        for(int id : friendlyWorkers) {
+        for(int id : friendlyWorkers){
             Econ.workerBFSMats.put(id, BFSMat);
             Econ.seen.put(id, true);
         }
