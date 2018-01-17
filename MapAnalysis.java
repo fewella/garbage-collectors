@@ -49,21 +49,35 @@ class MapAnalysis {
         while(tries < 50){
             int x = MapAnalysis.baseLocation.getX() + (int)(20*Math.random())-10;
             int y = MapAnalysis.baseLocation.getY() + (int)(20*Math.random())-10;
-            if(!MapAnalysis.connectivity(Planet.Earth, x, y, MapAnalysis.baseLocation.getX(), MapAnalysis.baseLocation.getY()) || MapAnalysis.passabilityMatEarth[y][x] == 0)
+            if(x < 0 || y < 0 || x >= Player.mapEarth.getWidth() || y >= Player.mapEarth.getHeight())
                 continue;
-            int score = 0;
-            for(int dy = -1; dy <= 1; dy++){
-                for(int dx = -1; dx <= 1; dx++){
-                    if(MapAnalysis.passabilityMatEarth[y][x] == 1)
-                        score += 100;
+            if(MapAnalysis.passabilityMatEarth[y][x] == 0)
+                continue;
+            if(!MapAnalysis.connectivity(Planet.Earth, x, y, MapAnalysis.baseLocation.getX(), MapAnalysis.baseLocation.getY()))
+                continue;
+            int score = -9999;
+            for(int dy = -2; dy <= 2; dy++){
+                for(int dx = -2; dx <= 2; dx++){
+                    if(MapAnalysis.passabilityMatEarth[y+dy][x+dx] == 1) {
+                        int temp = Math.abs(dx*dy);
+                        if(temp == 0)
+                            score += 8;
+                        else
+                            score += 8/temp;
+                    }
                 }
             }
             VecUnit initW = Player.mapEarth.getInitial_units();
+            int minD = 9999;
             for(int i = 0; i < initW.size(); i++){
-                if(initW.get(i).team()!=Player.gc.team())
-                    score += (int)Math.sqrt(MapAnalysis.baseLocation.distanceSquaredTo(initW.get(i).location().mapLocation()));
+                if(initW.get(i).team()!=Player.gc.team()){
+                    int d = (int)Math.sqrt(MapAnalysis.baseLocation.distanceSquaredTo(initW.get(i).location().mapLocation()));
+                    if(d < minD)
+                        minD = d;
+                }
             }
-            score += 3*Math.max(0, 20-(int)Math.sqrt(MapAnalysis.baseLocation.distanceSquaredTo(MapAnalysis.baseLocation)));
+            score += minD;
+            score -= (int)Math.sqrt(MapAnalysis.baseLocation.distanceSquaredTo(MapAnalysis.baseLocation));
             if(score > bestScore){
                 bestScore = score;
                 bestLoc = new MapLocation(Planet.Earth, x, y);
@@ -556,11 +570,16 @@ class MapAnalysis {
         ArrayList<MapLocation> factory = new ArrayList<>();
         factory.add(new MapLocation(Planet.Earth, minX, minY));
         int[][] BFSMat = BFS(factory, false);
-        for(int id : friendlyWorkers)
+        Econ.workerBFSMats = new HashMap<>();
+        Econ.seen = new HashMap<>();
+        Econ.stage = 0;
+        for(int id : friendlyWorkers) {
             Econ.workerBFSMats.put(id, BFSMat);
+            Econ.seen.put(id, true);
+        }
     }
     private static void baseFactory(){
-        ///TODO
+        //TODO
     }
     //Mars only
     private static void karbonite3dMat(short[][] passMat){

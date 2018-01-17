@@ -16,18 +16,21 @@ class Econ {
          if(!u.location().isOnMap()) continue;
          MapLocation mapLoc = u.location().mapLocation();
          //movement
-         if(seen.get(u.id()) == null){
+         if(!seen.containsKey(u.id())){
             ArrayList<MapLocation> temp = new ArrayList<>();
             temp.add(MapAnalysis.tempWorkerLoc(u));
             workerBFSMats.put(u.id(), MapAnalysis.BFS(temp));
             seen.put(u.id(), true);
+            System.out.println("Sent worker " + u.id() + " to x:" + temp.get(0).getX() + ", y:" + temp.get(0).getY());
          }
-         if(gc.isMoveReady(u.id()) && workerBFSMats != null){
+         if(workerBFSMats.get(u.id()) != null){
             Direction minD = Direction.Center;
             int min = 9999;
-            for(Direction d : dirs){
+            for (Direction d : dirs) {
                MapLocation newLoc = mapLoc.add(d);
-               if(workerBFSMats.get(u.id())[newLoc.getY()][newLoc.getX()] < min){
+               if (newLoc.getX() < 0 || newLoc.getY() < 0 || newLoc.getX() >= Player.mapEarth.getWidth() || newLoc.getY() >= Player.mapEarth.getHeight())
+                  continue;
+               if (workerBFSMats.get(u.id())[newLoc.getY()][newLoc.getX()] < min) {
                   min = workerBFSMats.get(u.id())[newLoc.getY()][newLoc.getX()];
                   minD = d;
                }
@@ -47,12 +50,12 @@ class Econ {
                   }
                }
                else{
-                  if(gc.canMove(u.id(), minD))
+                  if(gc.isMoveReady(u.id()) && gc.canMove(u.id(), minD))
                      gc.moveRobot(u.id(), minD);
                }
             }
             else{
-               if(gc.canMove(u.id(), minD))
+               if(gc.isMoveReady(u.id()) && gc.canMove(u.id(), minD))
                   gc.moveRobot(u.id(), minD);
                if(min == 0){
                   workerBFSMats.put(u.id(), null);
@@ -76,15 +79,12 @@ class Econ {
       }   
       while (factory.peek() != null) {
          Unit u=factory.remove();
-         //temporary hot garbage
-         //remove later
          if(stage == 0){
             stage = 1;
             for(Unit v : workers){
                ArrayList<MapLocation> temp = new ArrayList<>();
                temp.add(MapAnalysis.tempWorkerLoc(v));
                workerBFSMats.put(v.id(), MapAnalysis.BFS(temp));
-               seen.put(v.id(), true);
             }
          }
          if(Player.ranger.size() < 3) {
@@ -95,7 +95,6 @@ class Econ {
             if (gc.canProduceRobot(u.id(), UnitType.Worker))
                gc.produceRobot(u.id(), UnitType.Worker);
          }
-         //end of temporary hot garbage
          if (gc.canProduceRobot(u.id(), UnitType.Ranger))
             gc.produceRobot(u.id(), UnitType.Ranger);
          for (int k=0; k<8; k++)
