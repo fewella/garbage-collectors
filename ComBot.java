@@ -157,8 +157,9 @@ class ComBot {
 	static void resetFights() {
 		int r = (int) gc.round();
 		for (int i = 0; i < fights; i++) {
-			if (r - fightR[i] > 100 || fight[i] == null || (gc.senseNearbyUnitsByTeam(fight[i], 0, gc.team()).size()!=0)) {
-				
+			if (r - fightR[i] > 100 || fight[i] == null
+					|| (gc.senseNearbyUnitsByTeam(fight[i], 0, gc.team()).size() != 0)) {
+
 				while (true) {
 					int x = rng.nextInt((int) Player.map.getWidth());
 					int y = rng.nextInt((int) Player.map.getHeight());
@@ -188,11 +189,22 @@ class ComBot {
 				myR[rangers++] = u;
 			}
 		}
-		
+
+		ArrayList<MapLocation> rocks = new ArrayList<MapLocation>(12);
+		int rocketspace = 0;
 		VecUnit mine = gc.myUnits();
 		for (long i = mine.size() - 1; i >= 0; i--) {
 			if (mine.get(i).location().isOnMap()) {
-				MapLocation m = mine.get(i).location().mapLocation();
+				Unit u = mine.get(i);
+				MapLocation m = u.location().mapLocation();
+
+				if (u.unitType() == UnitType.Rocket
+						&& (u.health() > (4 * u.maxHealth() / 5) || u.structureIsBuilt() != 0)
+						&& u.structureGarrison().size() < u.structureMaxCapacity() && u.rocketIsUsed() == 0) {
+					rocks.add(m);
+					rocketspace += u.structureMaxCapacity() - u.structureGarrison().size();
+				}
+
 				for (int k = 0; k < enemies; k++) {
 					if (robot(enemy[k]) && enemy[k].damage() > 0
 							&& d2m(m, enemy[k].location().mapLocation()) <= enemy[k].attackRange()) {
@@ -201,6 +213,7 @@ class ComBot {
 				}
 			}
 		}
+		boolean[] toRock = new boolean[rangers];
 		shootPeople();
 		resetFights();
 		ArrayList<MapLocation> targs = new ArrayList<MapLocation>(enemies + 12);
@@ -215,6 +228,45 @@ class ComBot {
 				if (robot(enemy[i]) && enemy[i].damage() > 0 && canHit[i] < 2) {
 					hitter[hitters++] = enemy[i];
 				}
+			}
+		}
+		int[][] pRock=null;
+		if (rocketspace != 0) {
+			pRock = MapAnalysis.BFS(rocks);
+			int[] low = new int[rocketspace];
+			int p = 0;
+			int ip = 0;
+			while (p < rocketspace && ip < rangers) {
+				int d = pRock[myR[ip].location().mapLocation().getY()][myR[ip].location().mapLocation().getX()];
+				if (d != -1) {
+					low[p] = ip;
+					p++;
+				}
+				ip++;
+			}
+			int rocketLoaders = p;
+			for (int i = ip; i < rangers; i++) {
+				int d = pRock[myR[i].location().mapLocation().getY()][myR[i].location().mapLocation().getX()];
+				if (d != -1) {
+					int maxp = 0;
+					int maxd = pRock[myR[low[0]].location().mapLocation().getY()][myR[low[0]].location().mapLocation()
+							.getX()];
+					for (int k = 1; k < rocketspace; k++) {
+						int dr = pRock[myR[low[k]].location().mapLocation().getY()][myR[low[k]].location().mapLocation()
+								.getX()];
+						if (dr < maxd) {
+							maxd = dr;
+							maxp = k;
+						}
+					}
+					if (maxd > d) {
+						low[maxp] = i;
+					}
+				}
+			}
+
+			for (int i = 0; i < rocketLoaders; i++) {
+				toRock[low[i]] = true;
 			}
 		}
 		bfs = MapAnalysis.BFS(targs);
@@ -239,7 +291,12 @@ class ComBot {
 						}
 						v *= 1000;
 						if (gc.isAttackReady(myR[i].id())) {
-							v += bfs[nloc.getY()][nloc.getX()];
+							if (toRock[i]) {
+								v += pRock[myR[i].location().mapLocation().getY()][myR[i].location().mapLocation()
+										.getX()];
+							} else {
+								v += bfs[nloc.getY()][nloc.getX()];
+							}
 						} else {
 							int mind = 999;
 							for (int k = 0; k < enemies; k++) {
