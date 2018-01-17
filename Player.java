@@ -13,7 +13,6 @@ public class Player {
     static Queue<Unit> worker, knight, ranger, healer, mage, factory, rocket;
 
     public static void main(String[] args) {
-        ComBot.init();
         try {
             //connect to the manager, starting the game
             gc = new GameController();
@@ -31,6 +30,7 @@ public class Player {
             gc.queueResearch(UnitType.Worker);
             gc.queueResearch(UnitType.Rocket);
             
+            ComBot.init(gc);
         }
         catch(Exception e){
             System.out.println("Exception during setup");
@@ -72,7 +72,7 @@ public class Player {
                 }
                 MapAnalysis.turn();
                 Econ.turn(gc);
-                ComBot.turn(gc);
+                ComBot.turn();
                 gc.nextTurn();
             }
             catch(Exception e){

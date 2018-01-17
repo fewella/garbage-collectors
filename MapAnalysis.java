@@ -45,8 +45,7 @@ class MapAnalysis {
     public static MapLocation tempWorkerLoc(Unit v){
         int bestScore = -9999;
         MapLocation bestLoc = v.location().mapLocation();
-        int tries = 0;
-        while(tries < 50){
+        for(int tries = 0; tries < 50; tries++){
             int x = MapAnalysis.baseLocation.getX() + (int)(20*Math.random())-10;
             int y = MapAnalysis.baseLocation.getY() + (int)(20*Math.random())-10;
             if(x < 0 || y < 0 || x >= Player.mapEarth.getWidth() || y >= Player.mapEarth.getHeight())
@@ -92,7 +91,6 @@ class MapAnalysis {
                 bestScore = score;
                 bestLoc = loc;
             }
-            tries++;
         }
         Econ.workerLocs.add(bestLoc);
         return bestLoc;
