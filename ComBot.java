@@ -280,8 +280,8 @@ class ComBot {
 						MapLocation nloc = myloc.add(dirs[d]);
 						int v = 0;
 						for (int k = 0; k < hitters; k++) {
-							if (d2m2(nloc, hitter[k].location().mapLocation()) <= hitter[k].attackRange()
-									&& canHit[k] == 0
+							if (canHit[k] == 0 && d2m2(nloc, hitter[k].location().mapLocation()) <= hitter[k].attackRange()
+									
 									|| d2m(myloc, hitter[k].location().mapLocation()) <= hitter[k].attackRange()) {
 								v++;
 							}
