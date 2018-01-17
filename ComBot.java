@@ -23,7 +23,7 @@ class ComBot {
 	static Direction[] dirs = Direction.values();
 	static Random rng = new Random(7);
 	static GameController gc;
-	static int fights = 5;
+	static int fights = 3;
 	static MapLocation[] fight = new MapLocation[12];
 	static int[] fightR = new int[12];
 	static Unit[] myR = new Unit[500];

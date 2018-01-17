@@ -24,11 +24,14 @@ public class Player {
             MapAnalysis.setup();
 
             //queue research
-            gc.queueResearch(UnitType.Ranger);
-            gc.queueResearch(UnitType.Ranger);
-            gc.queueResearch(UnitType.Ranger);
-            gc.queueResearch(UnitType.Worker);
-            gc.queueResearch(UnitType.Rocket);
+            gc.queueResearch(UnitType.Ranger); //25
+            gc.queueResearch(UnitType.Ranger); //125
+            gc.queueResearch(UnitType.Worker); //150
+            gc.queueResearch(UnitType.Rocket); //250
+            gc.queueResearch(UnitType.Ranger); //450
+            gc.queueResearch(UnitType.Worker); //525
+            gc.queueResearch(UnitType.Worker); //600
+            gc.queueResearch(UnitType.Worker); //675
             
             ComBot.init(gc);
         }
