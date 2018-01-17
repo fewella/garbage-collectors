@@ -33,10 +33,13 @@ class Econ {
          if( nearRock.size() != 0 ) {
         	 if(gc.canBuild(u.id(), nearRock.get(0).id()))
         		 gc.build(u.id(), nearRock.get(0).id());
-        	 else if(gc.canLoad(nearRock.get(0).id(), u.id()))
+        	 else if(gc.canLoad(nearRock.get(0).id(), u.id())) {
         		 gc.load(nearRock.get(0).id(), u.id());
+        		 System.out.println("worker loaded");
+        	 }
          }
-         if( gc.round() > 200 && !madeRocket && Player.rocket.size() == 0 && Player.factory.size() >= Player.worker.size() ) {
+         if( gc.round() > 250 && !madeRocket && Player.rocket.size() == 0 && Player.factory.size() >= Player.worker.size() ) {
+        	 //move from factories
         	 for( int k = 0; k < 8; k++) {
         		 if(gc.canBlueprint(u.id(), UnitType.Rocket, dirs[k])) {
         			 gc.blueprint(u.id(), UnitType.Rocket, dirs[k]);
@@ -118,7 +121,8 @@ class Econ {
                }
             }
          }
-      }   
+      } 
+      //Factory production
       for (Unit u : Player.factory) {
          if(u.health() == u.maxHealth() && stage == 0){
             stage = 1;
@@ -133,10 +137,11 @@ class Econ {
             if (gc.canProduceRobot(u.id(), UnitType.Worker))
                gc.produceRobot(u.id(), UnitType.Worker);
          }*/
-        else if(Player.ranger.size()/8 > Player.healer.size()){
+         //uncomment when Healers move away
+         /*else if(Player.ranger.size()/6 > Player.healer.size()){
             if (gc.canProduceRobot(u.id(), UnitType.Healer))
                gc.produceRobot(u.id(), UnitType.Healer);
-         }
+         }*/
          else{
             if (gc.canProduceRobot(u.id(), UnitType.Ranger))
                gc.produceRobot(u.id(), UnitType.Ranger);
