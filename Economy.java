@@ -63,7 +63,7 @@ class Econ {
 					}
 				}
 				if(stage == 0){
-					if(Player.worker.size() < 12 && ((min == 0 && karb > 15) || karb > 115){
+					if(Player.worker.size() < 12 && ((min == 0 && karb > 15) || karb > 115)){
 						for (int k=0; k<8; k++) {
 							if(gc.canReplicate(u.id(), dirs[k])) {
 								gc.replicate(u.id(), dirs[k]);
