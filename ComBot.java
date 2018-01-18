@@ -167,7 +167,7 @@ class ComBot {
 				while (true) {
 					int x = rng.nextInt((int) Player.map.getWidth());
 					int y = rng.nextInt((int) Player.map.getHeight());
-					if (MapAnalysis.passabilityMat[y][x] != 0) {
+					if (MapTools.Passable.matrix(gc.planet())[y][x] != 0) {
 						fight[i] = new MapLocation(gc.planet(), x, y);
 						fightR[i] = r;
 						break;

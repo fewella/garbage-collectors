@@ -13,14 +13,14 @@ class Rocket {
 				}
 			}
 			if(r.structureGarrison().size() == r.structureMaxCapacity() || r.health() < 120 || gc.round() > 500) {
-				short[][] karb = MapAnalysis.karboniteMatMars((int)(gc.round()+gc.currentDurationOfFlight())).x;
+				short[][] karb = MapTools.Karbonite.matrix(Planet.Mars, (int)(gc.round()+gc.currentDurationOfFlight()));
 				int minScore = 9999;
 				MapLocation dest = new MapLocation(Planet.Mars, 10, 10);	//shouldn't happen
 				for(int y = 0; y < Player.mapMars.getHeight(); y++){
 					for(int x = 0; x < Player.mapMars.getWidth(); x++) {
-						if (MapAnalysis.passabilityMatMars[y][x] == 0) continue;
+						if (MapTools.Passable.matrix(Planet.Mars)[y][x] == 0) continue;
 						if (occupied[y][x] == 1) continue;
-						int score = 5 * karb[y][x] - MapAnalysis.karboniteConnected(Planet.Mars, x, y);
+						int score = 5 * karb[y][x] - MapTools.UnionFind.karbonite(Planet.Mars, x, y);
 						for (int dy = -1; dy <= 1; dy++) {
 							if (y + dy < 0 || y + dy >= Player.mapMars.getHeight()) continue;
 							for (int dx = -1; dx <= 1; dx++) {

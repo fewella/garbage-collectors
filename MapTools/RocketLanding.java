@@ -4,7 +4,6 @@ import bc.*;
 
 public class RocketLanding {
     private static GameController gc;
-
     private static int deliveryId, orderId;
     private static short[] received, used;
 
