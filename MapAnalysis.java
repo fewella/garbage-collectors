@@ -585,12 +585,12 @@ class MapAnalysis {
         //create matrix
         ArrayList<MapLocation> temp = new ArrayList<>();
         temp.add(new MapLocation(Planet.Earth, minX, minY));
-        int[][] BFSMat = BFS(temp, false);
+        Econ.workerBFSMat = BFS(temp, false);
         Econ.workerBFSMats = new HashMap<>();
         Econ.workerLocs = new ArrayList<>();
         Econ.seen = new HashMap<>();
         for(int id : friendlyWorkers){
-            Econ.workerBFSMats.put(id, BFSMat);
+            Econ.workerBFSMats.put(id, Econ.workerBFSMat);
             Econ.seen.put(id, true);
         }
     }
