@@ -54,7 +54,31 @@ class Econ {
          MapLocation mapLoc = u.location().mapLocation();
          //mars
          if( mapLoc.getPlanet() == Planet.Mars ) {
-        	 
+        	 for (int k=0; k<8; k++) {
+ 	            if(gc.canHarvest(u.id(), dirs[k])) {
+ 	               if(gc.round() > 1 && karb < 400) {
+ 	                  gc.harvest(u.id(), dirs[k]);
+ 	                  break;
+ 	               }
+ 	            }
+ 	         }
+        	 VecUnit nearRoc = gc.senseNearbyUnitsByType(u.location().mapLocation(), 10, UnitType.Rocket);
+	         if( nearRoc.size() != 0 ) {
+	        	 Direction avoid = u.location().mapLocation().directionTo(nearRoc.get(0).location().mapLocation());
+		         for( int k = 0; k<8; k++ ) {
+		        	if(!dirs[k].equals(avoid)) {
+		        		if(gc.isMoveReady(u.id()) && gc.canMove(u.id(), dirs[k])) 
+		        			gc.moveRobot(u.id(), dirs[k]);
+		        	}
+		        }
+	         }
+	         //if time make it move toward karbonite
+	         else {
+	        	 for( int k = 0; k<8; k++ ) {
+			        if(gc.isMoveReady(u.id()) && gc.canMove(u.id(), dirs[k])) 
+			        	gc.moveRobot(u.id(), dirs[k]);
+			     }
+	         }
          }
          //earth
          else if (!stayFactory.contains(u)){
