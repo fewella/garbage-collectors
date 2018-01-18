@@ -20,6 +20,7 @@ public class Player {
 
             //map analysis
             MapAnalysis.setup();
+            Rocket.occupied = new int[(int)mapMars.getHeight()][(int)mapMars.getWidth()];
 
             //queue research
             gc.queueResearch(UnitType.Ranger); //25
