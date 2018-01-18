@@ -28,7 +28,7 @@ class Econ {
 					}
 				}
 			}
-			if(stage == 1 && karb > 200){
+			if(stage == 1 && karb > 200 && Player.worker.size() < 12){
 				for (int k=0; k<8; k++) {
 					if(gc.canReplicate(u.id(), dirs[k])) {
 						gc.replicate(u.id(), dirs[k]);
@@ -63,7 +63,7 @@ class Econ {
 					}
 				}
 				if(stage == 0){
-					if((min == 0 && karb > 15) || karb > 115){
+					if(Player.worker.size() < 12 && ((min == 0 && karb > 15) || karb > 115){
 						for (int k=0; k<8; k++) {
 							if(gc.canReplicate(u.id(), dirs[k])) {
 								gc.replicate(u.id(), dirs[k]);
