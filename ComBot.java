@@ -58,6 +58,10 @@ class ComBot {
 				fight[p++] = u.location().mapLocation();
 			}
 		}
+		for (int i=p; i<fights; i++) {
+			fightR[i]=200;
+			fight[i]=fight[p];
+		}
 	}
 
 	static void snipe() {
@@ -217,7 +221,7 @@ class ComBot {
 		shootPeople();
 		resetFights();
 		ArrayList<MapLocation> targs = new ArrayList<MapLocation>(enemies + 12);
-		for (int i = 0; i < fight.length; i++) {
+		for (int i = 0; i < fights; i++) {
 			if (fight[i] != null) {
 				targs.add(fight[i]);
 			}
@@ -232,7 +236,9 @@ class ComBot {
 		}
 		int[][] pRock=null;
 		if (rocketspace != 0) {
+			//System.out.println("in");
 			pRock = MapAnalysis.BFS(rocks);
+			//System.out.println("out");
 			int[] low = new int[rocketspace];
 			int p = 0;
 			int ip = 0;
