@@ -13,10 +13,42 @@ class Econ {
       Collections.shuffle(Arrays.asList(dirs));
       //VecUnit us=gc.myUnits();
       long karb=gc.karbonite();
+      System.out.println("karbonite: " + karb);
       //if( workers.size() == 0)
     //	  System.out.println("no workers");
       boolean madeRocket = false;
-      boolean replicate = false;
+      int replicate = 0;
+      HashSet<Unit> stayFactory = new HashSet<Unit>(); //these units will not go out to look for karbonite/make new factories
+    //Factory production
+      for (Unit u : Player.factory) {
+        VecUnit wF = gc.senseNearbyUnitsByType(u.location().mapLocation(), 2, UnitType.Worker);
+        for(int i = 0; i < wF.size() && i < 2; i++) {
+        	Unit temp = wF.get(i);
+        	stayFactory.add(temp);
+        	if(u.health() == u.maxHealth()) {
+	        	for( int k = 0; k < 8; k++) {
+	        		if( gc.canReplicate(temp.id(), dirs[k])) {
+	        			 gc.replicate(temp.id(), dirs[k]); 
+	        		}
+	        	}
+        	}
+        	else {
+        		if(gc.canBuild(temp.id(), u.id()))
+	        		 gc.build(temp.id(), u.id());
+        	}
+        }
+         //uncomment when Healers move away
+         /*if(Player.ranger.size()/6 > Player.healer.size()){
+            if (gc.canProduceRobot(u.id(), UnitType.Healer))
+               gc.produceRobot(u.id(), UnitType.Healer);
+         }*/
+         //else{
+            if (gc.canProduceRobot(u.id(), UnitType.Ranger))
+               gc.produceRobot(u.id(), UnitType.Ranger);
+         //}
+         for (int k=0; k<8; k++)
+            if (gc.canUnload(u.id(),dirs[k])) gc.unload(u.id(),dirs[k]);
+      }
       for(Unit u : Player.worker) {
          if(!u.location().isOnMap()) continue;
          MapLocation mapLoc = u.location().mapLocation();
@@ -25,25 +57,21 @@ class Econ {
         	 
          }
          //earth
-         else {
-	         for (int k=0; k<8; k++) {
-	            if(gc.canHarvest(u.id(), dirs[k])) {
-	               if(gc.round() > 1 && karb < 400) {
-	                  gc.harvest(u.id(), dirs[k]);
-	                  break;
-	               }
-	            }
-	         }
+         else if (!stayFactory.contains(u)){
+        	 boolean doneAction = false;
 	         VecUnit nearRock = gc.senseNearbyUnitsByType(mapLoc, 2, UnitType.Rocket);
-	         if( nearRock.size() != 0 ) {
-	        	 if(gc.canBuild(u.id(), nearRock.get(0).id()))
+	         if( gc.round()>250 && nearRock.size() != 0 ) {
+	        	 if(gc.canBuild(u.id(), nearRock.get(0).id())) {
 	        		 gc.build(u.id(), nearRock.get(0).id());
+	        		 doneAction = true;
+	        	 }
 	        	 else if(gc.canLoad(nearRock.get(0).id(), u.id())) {
 	        		 gc.load(nearRock.get(0).id(), u.id());
 	        		 System.out.println("worker loaded");
+	        		 doneAction = true;
 	        	 }
 	         }
-	         if( gc.round() > 250 && !madeRocket && Player.rocket.size() == 0 ) {
+	         if( gc.round() > 250 && !madeRocket && Player.rocket.size() == 0 && !doneAction) {
 	        	 //move from factories
 	        	 for( int k = 0; k < 8; k++) {
 	        		 if(gc.canBlueprint(u.id(), UnitType.Rocket, dirs[k])) {
@@ -52,73 +80,8 @@ class Econ {
 	        		 }
 	        	 }
 	         }
-	         if( (Player.worker.size() <= Player.factory.size() && gc.round() < 150) || Player.worker.size() < 3) {
-	        	 for( int k = 0; k < 8; k++) {
-	        		 if( gc.canReplicate(u.id(), dirs[k])) {
-	        			 gc.replicate(u.id(), dirs[k]);
-	        			 replicate = true; 
-	        		 }
-	        	 }
-	         }
-	         if(!seen.containsKey(u.id())){
-	            ArrayList<MapLocation> temp = new ArrayList<>();
-	            temp.add(MapAnalysis.tempWorkerLoc(u));
-	            workerBFSMats.put(u.id(), MapAnalysis.BFS(temp));
-	            seen.put(u.id(), true);
-	            System.out.println("Sent new worker " + u.id() + " to x:" + temp.get(0).getX() + ", y:" + temp.get(0).getY());
-	         }
-	         if(workerBFSMats.get(u.id()) != null && nearRock.size() == 0){
-	            Direction minD = Direction.Center;
-	            int min = 9999;
-	            for (Direction d : dirs) {
-	               MapLocation newLoc = mapLoc.add(d);
-	               if (newLoc.getX() < 0 || newLoc.getY() < 0 || newLoc.getX() >= Player.mapEarth.getWidth() || newLoc.getY() >= Player.mapEarth.getHeight())
-	                  continue;
-	               int newMin = workerBFSMats.get(u.id())[newLoc.getY()][newLoc.getX()];
-	               if (newMin < min && gc.canMove(u.id(), d) || newMin == 0) {
-	                  min = workerBFSMats.get(u.id())[newLoc.getY()][newLoc.getX()];
-	                  minD = d;
-	               }
-	            }
-	            if(stage == 0){
-	               if(min == 0){
-	                  try {
-	                     Unit v = gc.senseUnitAtLocation(mapLoc.add(minD));
-	                     if (gc.canBuild(u.id(),v.id())) {
-	                        gc.build(u.id(),v.id());
-	                     }
-	                  }
-	                  catch(Exception e){
-	                     if(gc.canBlueprint(u.id(),UnitType.Factory, minD)){
-	                        gc.blueprint(u.id(),UnitType.Factory, minD);
-	                     }
-	                  }
-	               }
-	               else{
-	                  if(gc.isMoveReady(u.id()) && gc.canMove(u.id(), minD))
-	                     gc.moveRobot(u.id(), minD);
-	               }
-	            }
-	            else{
-	               boolean canLoad = true;
-	               if(nearRock.size() != 0)
-	            	   canLoad = stayByRocket(gc, u, nearRock.get(0));
-	               if(canLoad) {
-	            	   if(gc.isMoveReady(u.id()) && gc.canMove(u.id(), minD))
-	            		   gc.moveRobot(u.id(), minD);
-	            	   if(min == 0){
-	            		   workerBFSMats.put(u.id(), null);
-	            	   }
-	               }
-	            }
-	         }
-	         else{
-	            VecUnit v=gc.senseNearbyUnitsByType(u.location().mapLocation(),2,UnitType.Factory);
-	            for (long k=v.size()-1; k>=0; k--) {
-	               if (gc.canBuild(u.id(),v.get(k).id())) {
-	                  gc.build(u.id(),v.get(k).id());
-	               }
-	            }
+	         VecUnit nearFac = gc.senseNearbyUnitsByType(u.location().mapLocation(), 4, UnitType.Factory);
+	         if( nearFac.size() == 0 ) {
 	            for (int k=0; k<8; k++) {
 	               if (gc.canBlueprint(u.id(),UnitType.Factory, dirs[k])) {
 	                  gc.blueprint(u.id(),UnitType.Factory, dirs[k]);
@@ -126,35 +89,43 @@ class Econ {
 	               }
 	            }
 	         }
+	         if( nearFac.size() != 0 ) {
+	        	Unit fac = nearFac.get(0);
+	        	Direction avoid = u.location().mapLocation().directionTo(fac.location().mapLocation());
+	        	for( int k = 0; k<8; k++ ) {
+	        		if(!dirs[k].equals(avoid)) {
+	        			if(gc.isMoveReady(u.id()) && gc.canMove(u.id(), dirs[k])) 
+	        				gc.moveRobot(u.id(), dirs[k]);
+	        		}
+	        	}
+	         }
+	         /*if( (Player.worker.size() <= Player.factory.size()*2 && gc.round() < 150 && replicate < 3) || Player.worker.size() <= Player.factory.size()*1.5) {
+	        	 for( int k = 0; k < 8; k++) {
+	        		 if( gc.canReplicate(u.id(), dirs[k])) {
+	        			 gc.replicate(u.id(), dirs[k]);
+	        			 replicate++; 
+	        			 System.out.println("replicated");
+	        		 }
+	        	 }
+	         }*/
+	         /*if( gc.round() < (225/u.workerBuildHealth())+1 ) {
+	        	VecUnit v=gc.senseNearbyUnitsByType(u.location().mapLocation(),2,UnitType.Factory);
+	            for (long k=v.size()-1; k>=0; k--) {
+	               if (gc.canBuild(u.id(),v.get(k).id())) {
+	                  gc.build(u.id(),v.get(k).id());
+	               }
+	            }
+	         }*/
+	         for (int k=0; k<8; k++) {
+	            if(gc.canHarvest(u.id(), dirs[k])) {
+	               if(gc.round() > 1 && karb < 400) {
+	                  gc.harvest(u.id(), dirs[k]);
+	                  break;
+	               }
+	            }
+	         }
          }
       } 
-      //Factory production
-      for (Unit u : Player.factory) {
-         if(u.health() == u.maxHealth() && stage == 0){
-            stage = 1;
-            for(Unit v : Player.worker){
-               ArrayList<MapLocation> temp = new ArrayList<>();
-               temp.add(MapAnalysis.tempWorkerLoc(v));
-               workerBFSMats.put(v.id(), MapAnalysis.BFS(temp));
-               System.out.println("Sent worker " + v.id() + " to x:" + temp.get(0).getX() + ", y:" + temp.get(0).getY());
-            }
-         }
-         /*else if(karb > 300 && Player.ranger.size() > 10){
-            if (gc.canProduceRobot(u.id(), UnitType.Worker))
-               gc.produceRobot(u.id(), UnitType.Worker);
-         }*/
-         //uncomment when Healers move away
-         /*else if(Player.ranger.size()/6 > Player.healer.size()){
-            if (gc.canProduceRobot(u.id(), UnitType.Healer))
-               gc.produceRobot(u.id(), UnitType.Healer);
-         }*/
-         else{
-            if (gc.canProduceRobot(u.id(), UnitType.Ranger))
-               gc.produceRobot(u.id(), UnitType.Ranger);
-         }
-         for (int k=0; k<8; k++)
-            if (gc.canUnload(u.id(),dirs[k])) gc.unload(u.id(),dirs[k]);
-      }
    }
    public static boolean stayByRocket(GameController gc, Unit u, Unit r) {
 	   if( !u.location().mapLocation().isAdjacentTo(r.location().mapLocation()) ) {
