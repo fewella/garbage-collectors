@@ -2,7 +2,6 @@
 // See xxx for the javadocs.
 import bc.*;
 
-import java.awt.*;
 import java.util.*;
 
 class MapAnalysis {
@@ -33,9 +32,6 @@ class MapAnalysis {
     private static short[] idEarth, idMars;
     private static short[] szEarth, szMars;
     private static int[] karbEarth, karbMars;
-    //rocket landing location structures
-    private static int deliveryId, orderId;
-    private static short[] received, used;
     //Mars only
     private static ArrayList<short[][]> karbonite3dMat; //(should take .5 MB max)
     private static ArrayList<Integer> karboniteTotalArray, karboniteRoundArray;
@@ -213,61 +209,15 @@ class MapAnalysis {
         }
         return karb[root(id, (short)(y*w+x))];
     }
-    //Earth only
-    /**
-     * Call from Earth to request landing locations. While this is done periodically, calling this 100 turns before
-     * requesting locations ensures that the data is most recent (50 turns old), and minimizes the risk of running out of locations.
-     * @param tt number of locations that will be received with requestLandingLocations(true, true)
-     * @param tf number of locations that will be received with requestLandingLocations(true, false)
-     * @param ft number of locations that will be received with requestLandingLocations(false, true)
-     * @param ff number of locations that will be received with requestLandingLocations(false, false)
-     */
-    public static void landingLocationsRequest(int tt, int tf, int ft, int ff){
-        Player.gc.writeTeamArray(0, ++orderId);
-        Player.gc.writeTeamArray(1, tt);
-        Player.gc.writeTeamArray(2, tf);
-        Player.gc.writeTeamArray(3, ft);
-        Player.gc.writeTeamArray(4, ff);
-    }
-    /**
-     * Call from Earth to receive a most suitable rocket landing location.
-     * For optimal results, call requestLandingLocations() 51 turns before calling this.
-     * @param aggressive <br>true: prioritize bombarding enemy base
-     *                   <br>false: avoid enemies
-     * @param congressive <br>true: prioritize sending close to friendly units
-     *                    <br>false: prioritize covering more ground
-     * @return MapLocation of the best landing location
-     */
-    public static MapLocation landingLocationsRetrieve(boolean aggressive, boolean congressive){
-        int i = 0;
-        if(!aggressive) i = 2;
-        if(!congressive) i++;
-        if(received[i] <= used[i]){
-            System.out.println("Ran out of landing locations for aggressive: " + aggressive + " congressive: " + congressive);
-            //return random location
-            while(true) {
-                int x = (int) (Player.mapMars.getWidth() * Math.random());
-                int y = (int) (Player.mapMars.getHeight() * Math.random());
-                if(passabilityMatMars[y][x] == 1) return new MapLocation(Planet.Mars, x, y);
-            }
-        }
-        int i2 = 5+used[i]++;
-        for(int j = 0; j < i; j++) i2 += received[j];
-        int val = Player.arrayMars.get(i2);
 
-        return new MapLocation(Planet.Mars, (int)(val/Player.mapMars.getWidth()), (int)(val%Player.mapMars.getWidth()));
-    }
     //methods for Player
     public static void setup(){
-        orderId = 0;
-        deliveryId = 0;
-        received = new short[4];
-        used = new short[4];
+        MapTools.RocketLanding.setup(Player.gc);
         //primary analysis
         passabilityMat(Player.mapEarth);
         passabilityMat(Player.mapMars);
         karboniteMat();
-        //secondary analysis
+        //secondary analysiss
         karbonite3dMat(passabilityMatMars);
         //7 rounds to switch to Earth's turn, build unit, load to rocket, and launch
         connectivityArr(Planet.Earth, passabilityMatEarth, karboniteMatEarth);
@@ -306,30 +256,7 @@ class MapAnalysis {
         }
     }
     public static void turn(){
-        if(Player.gc.planet() == Planet.Earth){
-            //listen to delivery
-            int newDeliveryId = Player.arrayMars.get(0);
-            if(deliveryId != newDeliveryId){
-                deliveryId = newDeliveryId;
-                received = new short[4];
-                used = new short[4];
-                //read delivery details
-                for(int i = 0; i < 4; i++)
-                    received[i] = (short)(Player.arrayMars.get(i+1));
-            }
-        }
-        else{
-            //auto send
-            if (Player.gc.round() % 50 == 1)
-                landingLocationsCompute(10, 10, 10, 10);
-            //listen to orders
-            int newOrderId = Player.arrayEarth.get(0);
-            if(orderId != newOrderId){
-                orderId = newOrderId;
-                //process order, send delivery
-                landingLocationsCompute(Player.arrayEarth.get(1), Player.arrayEarth.get(2), Player.arrayEarth.get(3), Player.arrayEarth.get(4));
-            }
-        }
+        MapTools.RocketLanding.turn();
     }
 
     //private methods
@@ -520,9 +447,6 @@ class MapAnalysis {
             }
         }
     }
-    private static void landingLocationsComputeInitial(){
-        //TODO
-    }
     private static void initialFactory(){
         VecUnit workers = Player.mapEarth.getInitial_units();
         ArrayList<int[][]> BFSMats = new ArrayList<>();
@@ -640,36 +564,6 @@ class MapAnalysis {
             karboniteRoundArray.add(round);
         }
         System.out.println("Mars total reachable karbonite: " + cumulative);
-    }
-    private static void landingLocationsCompute(int tt, int tf, int ft, int ff){
-        //watch for improper arguments
-        int total = tt+tf+ft+ff;
-        if(total > 40) {
-            System.out.println("Number of total requested locations (" + total + ") exceeds 40");
-            tt = tf = ft = ff = 10;
-        }
-        Player.gc.writeTeamArray(0, ++deliveryId);
-        Player.gc.writeTeamArray(1, tt);
-        Player.gc.writeTeamArray(2, tf);
-        Player.gc.writeTeamArray(3, ft);
-        Player.gc.writeTeamArray(4, ff);
-        //compute best locations
-        //TODO
-        long c = 5;
-        long i = c;
-        int w = (int)Player.mapMars.getWidth();
-        for(c += tt; i < c; i++){
-            Player.gc.writeTeamArray(i, 0);
-        }
-        for(c += tf; i < c; i++){
-            Player.gc.writeTeamArray(i, (int)i);
-        }
-        for(c += ft; i < c; i++){
-            Player.gc.writeTeamArray(i, (int)i*w);
-        }
-        for(c += ff; i < c; i++){
-            Player.gc.writeTeamArray(i, (int)(i*w+i));
-        }
     }
 
     //helper methods

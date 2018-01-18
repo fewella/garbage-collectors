@@ -43,8 +43,6 @@ public class Player {
         while (true) {
             try{
                 //game cycle
-                arrayEarth = gc.getTeamArray(Planet.Earth);
-                arrayMars = gc.getTeamArray(Planet.Mars);
                 worker = new LinkedList<>();
                 knight = new LinkedList<>();
                 ranger = new LinkedList<>();
