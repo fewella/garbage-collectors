@@ -23,58 +23,64 @@ class MapAnalysis {
 
     //public methods
     //feel free to use them
-    public static MapLocation tempWorkerLoc(Unit v){
-        int bestScore = -9999;
-        MapLocation bestLoc = v.location().mapLocation();
-        for(int tries = 0; tries < 50; tries++){
-            int x = MapAnalysis.baseLocation.getX() + (int)(20*Math.random())-10;
-            int y = MapAnalysis.baseLocation.getY() + (int)(20*Math.random())-10;
-            if(x < 0 || y < 0 || x >= Player.mapEarth.getWidth() || y >= Player.mapEarth.getHeight())
-                continue;
-            if(MapTools.Passable.matrix(Planet.Earth)[y][x] == 0)
-                continue;
-            if(!MapTools.UnionFind.connect(Planet.Earth, x, y, MapAnalysis.baseLocation.getX(), MapAnalysis.baseLocation.getY()))
-                continue;
-            int score = 0;
-            for(int dy = -2; dy <= 2; dy++){
-                for(int dx = -2; dx <= 2; dx++){
-                    if(x+dx < 0 || y+dy < 0 || x+dx >= Player.mapEarth.getWidth() || y+dy >= Player.mapEarth.getHeight())
-                        continue;
-                    if(MapTools.Passable.matrix(Planet.Earth)[y+dy][x+dx] == 1) {
-                        int temp = Math.abs(dx*dy);
-                        if(temp == 0)
-                            score += 8;
-                        else
-                            score += 8/temp;
-                    }
-                }
+    public static MapLocation initialFactory(){
+        VecUnit workers = Player.mapEarth.getInitial_units();
+        ArrayList<int[][]> BFSMats = new ArrayList<>();
+        ArrayList<MapLocation> enemyWorkers = new ArrayList<>();
+        for(int i = 0; i < workers.size(); i++){
+            Unit worker = workers.get(i);
+            if(worker.team() == Player.gc.team()){
+                ArrayList<MapLocation> temp = new ArrayList<>();
+                temp.add(worker.location().mapLocation());
+                BFSMats.add(BFS(temp, false));
             }
-            MapLocation loc = new MapLocation(Planet.Earth, x, y);
-            VecUnit initW = Player.mapEarth.getInitial_units();
-            int minD = 9999;
-            for(int i = 0; i < initW.size(); i++){
-                if(initW.get(i).team()!=Player.gc.team()){
-                    int d = (int)Math.sqrt(loc.distanceSquaredTo(initW.get(i).location().mapLocation()));
-                    if(d < minD)
-                        minD = d;
-                }
-            }
-            score += 5*minD;
-            score -= 2*(int)Math.sqrt(loc.distanceSquaredTo(MapAnalysis.baseLocation));
-            minD = 9999;
-            for(MapLocation other : Econ.workerLocs){
-                int d = (int)Math.sqrt(loc.distanceSquaredTo(other));
-                if(d < minD)
-                    minD = d;
-            }
-            score += 10*Math.min(0, minD-6);
-            if(score > bestScore){
-                bestScore = score;
-                bestLoc = loc;
+            else{
+                enemyWorkers.add(worker.location().mapLocation());
             }
         }
-        Econ.workerLocs.add(bestLoc);
-        return bestLoc;
+        //avoid locations inside workers
+        for(int i = 0; i < workers.size(); i++){
+            MapLocation loc = workers.get(i).location().mapLocation();
+            BFSMats.get(0)[loc.getY()][loc.getX()] = 9999;
+        }
+        //calculate optimal locations
+        int min = 9999;
+        ArrayList<Integer> candX = new ArrayList<>();
+        ArrayList<Integer> candY = new ArrayList<>();
+        for(int y = 0; y < Player.mapEarth.getHeight(); y++){
+            for(int x = 0; x < Player.mapEarth.getWidth(); x++){
+                int total = 0;
+                for(int[][] Mat : BFSMats)
+                    total += Mat[y][x];
+                if(total < min){
+                    min = total;
+                    candX = new ArrayList<>();
+                    candY = new ArrayList<>();
+                    candX.add(x);
+                    candY.add(y);
+                }
+                else if(total == min){
+                    candX.add(x);
+                    candY.add(y);
+                }
+            }
+        }
+        //tiebreaks - find location
+        int[][] combotBFSMat = BFS(enemyWorkers, false);
+        min = 9999;
+        int minX = 3;
+        int minY = 3;
+        for(int i = 0; i < candX.size(); i++){
+            int x = candX.get(i);
+            int y = candY.get(i);
+            int val2 = combotBFSMat[y][x];
+            if(val2 < min){
+                min = val2;
+                minX = x;
+                minY = y;
+            }
+        }
+        return new MapLocation(Planet.Earth, minX, minY);
     }
     public static int[][] BFS(ArrayList<MapLocation> destinations){
         return BFS(destinations, true);
@@ -159,11 +165,6 @@ class MapAnalysis {
                     blankBFS[y][x] = -1;
                 }
             }
-        }
-        //first Factory
-        if(Player.gc.planet() == Planet.Earth){
-            initialFactory();
-            Econ.stage = 0;
         }
     }
     public static void turn(){
@@ -281,80 +282,6 @@ class MapAnalysis {
                 }
             }
         }
-    }
-    private static void initialFactory(){
-        VecUnit workers = Player.mapEarth.getInitial_units();
-        ArrayList<int[][]> BFSMats = new ArrayList<>();
-        ArrayList<MapLocation> enemyWorkers = new ArrayList<>();
-        ArrayList<Integer> friendlyWorkers = new ArrayList<>();
-        for(int i = 0; i < workers.size(); i++){
-            Unit worker = workers.get(i);
-            if(worker.team() == Player.gc.team()){
-                friendlyWorkers.add(worker.id());
-                ArrayList<MapLocation> temp = new ArrayList<>();
-                temp.add(worker.location().mapLocation());
-                BFSMats.add(BFS(temp, false));
-            }
-            else{
-                enemyWorkers.add(worker.location().mapLocation());
-            }
-        }
-        //avoid locations inside workers
-        for(int i = 0; i < workers.size(); i++){
-            MapLocation loc = workers.get(i).location().mapLocation();
-            BFSMats.get(0)[loc.getY()][loc.getX()] = 9999;
-        }
-        //calculate optimal locations
-        int min = 9999;
-        ArrayList<Integer> candX = new ArrayList<>();
-        ArrayList<Integer> candY = new ArrayList<>();
-        for(int y = 0; y < Player.mapEarth.getHeight(); y++){
-            for(int x = 0; x < Player.mapEarth.getWidth(); x++){
-                int total = 0;
-                for(int[][] Mat : BFSMats)
-                    total += Mat[y][x];
-                if(total < min){
-                    min = total;
-                    candX = new ArrayList<>();
-                    candY = new ArrayList<>();
-                    candX.add(x);
-                    candY.add(y);
-                }
-                else if(total == min){
-                    candX.add(x);
-                    candY.add(y);
-                }
-            }
-        }
-        //tiebreaks - find location
-        int[][] combotBFSMat = BFS(enemyWorkers, false);
-        min = 9999;
-        int minX = 3;
-        int minY = 3;
-        for(int i = 0; i < candX.size(); i++){
-            int x = candX.get(i);
-            int y = candY.get(i);
-            int val2 = combotBFSMat[y][x];
-            if(val2 < min){
-                min = val2;
-                minX = x;
-                minY = y;
-            }
-        }
-        //create matrix
-        ArrayList<MapLocation> temp = new ArrayList<>();
-        temp.add(new MapLocation(Planet.Earth, minX, minY));
-        Econ.workerBFSMat = BFS(temp, false);
-        Econ.workerBFSMats = new HashMap<>();
-        Econ.workerLocs = new ArrayList<>();
-        Econ.seen = new HashMap<>();
-        for(int id : friendlyWorkers){
-            Econ.workerBFSMats.put(id, Econ.workerBFSMat);
-            Econ.seen.put(id, true);
-        }
-    }
-    private static void baseFactory(){
-        //TODO
     }
 }
 

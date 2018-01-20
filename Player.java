@@ -18,8 +18,8 @@ public class Player {
             mapEarth = gc.startingMap(Planet.Earth);
             mapMars = gc.startingMap(Planet.Mars);
 
-            //map analysis
             MapAnalysis.setup();
+            Econ.setup();
             Rocket.occupied = new int[(int)mapMars.getHeight()][(int)mapMars.getWidth()];
 
             //queue research
