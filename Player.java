@@ -73,7 +73,11 @@ public class Player {
                         rocket.add(temp);
                 }
                 MapAnalysis.turn();
-                Econ.turn(gc);
+                if (Player.gc.planet() == Planet.Earth) {
+                	Econ.turn(gc);
+        		}
+                else
+                	MarsWorker.turn(gc);
                 Rocket.launch(gc);
                 ComBot.turn();
                 Healer.run(gc);
