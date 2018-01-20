@@ -61,14 +61,14 @@ class Econ {
 						}
 					}
 					//uncomment when Healers move away
-						/*if(Player.ranger.size()/6 > Player.healer.size()){
-							if (gc.canProduceRobot(u.id(), UnitType.Healer))
-								gc.produceRobot(u.id(), UnitType.Healer);
-						}*/
-					//else{
-					if (gc.canProduceRobot(u.id(), UnitType.Ranger))
-						gc.produceRobot(u.id(), UnitType.Ranger);
-					//}
+					if(Player.ranger.size()/6 > Player.healer.size()){
+						if (gc.canProduceRobot(u.id(), UnitType.Healer))
+							gc.produceRobot(u.id(), UnitType.Healer);
+					}
+					else{
+						if (gc.canProduceRobot(u.id(), UnitType.Ranger))
+							gc.produceRobot(u.id(), UnitType.Ranger);
+					}
 					karb = gc.karbonite();
 					for (int k = 0; k < 8; k++)
 						if (gc.canUnload(u.id(), dirs[k])) gc.unload(u.id(), dirs[k]);

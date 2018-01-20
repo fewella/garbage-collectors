@@ -1,9 +1,10 @@
 import bc.*;
-
-import java.util.LinkedList;
+import java.util.ArrayList;
+import java.util.Queue;
 
 public class Healer {
-    public static void run(GameController gc, LinkedList<Unit> healers) {
+    public static void run(GameController gc) {
+        Queue<Unit> healers = Player.healer;
         Team team = gc.team();
         Team enemy = (team==Team.Blue) ? Team.Red:Team.Blue;
 
@@ -11,8 +12,14 @@ public class Healer {
             // Unit currentHealer = units.get(i);
 
             if(currentHealer.unitType().equals(UnitType.Healer)) { // Start actual healer code
+                MapLocation myMapLocation = null;
 
-                MapLocation myMapLocation = currentHealer.location().mapLocation();
+                try {
+                    myMapLocation = currentHealer.location().mapLocation();
+                } catch(Exception e){
+                    continue;
+                }
+
                 int id = currentHealer.id();
                 VecUnit friends = gc.senseNearbyUnitsByTeam(myMapLocation, currentHealer.attackRange(), team);
 
@@ -35,31 +42,59 @@ public class Healer {
                         gc.heal(id, targetID);
                     }
                 }
+                else {  // If can't heal, still set target to someone
+                    targetLoc = friends.get(0).location();
+                }
 
                 // Run away from nearest enemy, or move towards most damaged friend
                 // TODO: Should run away from largest "cluster" of enemies rather than closest
 
                 VecUnit notFriends = gc.senseNearbyUnitsByTeam(myMapLocation, currentHealer.visionRange(), enemy);
 
-                if(gc.isMoveReady(id)) {
+
+                if(gc.isMoveReady(id)) { // Just move towards unhealthiest ranger
+                    Direction[] dirs = {Direction.Northwest, Direction.North, Direction.Northeast, Direction.West, Direction.East, Direction.Southwest, Direction.South, Direction.Southeast};
+
                     long closestEnemyDistance = 9999l;
                     MapLocation closestEnemyLoc = null;  // If this is null at the end, indicates sees no bad guys.
 
                     for (int i = 0; i < notFriends.size(); i++) {
-                        long currentDist = currentHealer.location().mapLocation().distanceSquaredTo(notFriends.get(i).location().mapLocation());
+                        long currentDist = myMapLocation.distanceSquaredTo(notFriends.get(i).location().mapLocation());
                         if (currentDist < closestEnemyDistance) {
                             closestEnemyDistance = currentDist;
                             closestEnemyLoc = notFriends.get(i).location().mapLocation();
                         }
                     }
+                    if (closestEnemyLoc != null) { // Means NOT clear of baddies
 
-                    if (closestEnemyLoc != null) {
-                        Direction enemyDir = currentHealer.location().mapLocation().directionTo(closestEnemyLoc);
-                        if(gc.canMove(id, enemyDir))
-                            gc.moveRobot(id, enemyDir);
+                        Direction enemyDirOpp = bc.bcDirectionOpposite(myMapLocation.directionTo(closestEnemyLoc));
+                        if(gc.canMove(id, enemyDirOpp))
+                            gc.moveRobot(id, enemyDirOpp);
                     }
                     else {
-                        gc.canMove(id, currentHealer.location().mapLocation().directionTo(targetLoc.mapLocation()));
+                        ArrayList<MapLocation> targetLocs = new ArrayList<MapLocation>();
+                        targetLocs.add(targetLoc.mapLocation());
+                        int[][] out = MapAnalysis.BFS(targetLocs);
+
+                        int x = myMapLocation.getX();
+                        int y = myMapLocation.getY();
+
+                        int minInd = -1;
+                        if(y > 0 && x > 0 && y < out.length - 1 && x < out[0].length - 1) {
+                            int[] dists = {out[y - 1][x - 1], out[y][x - 1], out[y + 1][x - 1], out[y - 1][x], out[y + 1][x], out[y - 1][x - 1], out[y][x - 1], out[y + 1][x - 1]};
+                            int min = 99999;
+                            for(int i = 0; i < 8; i++) {
+                                if(dists[i] < min) {
+                                    minInd = i;
+                                    min = dists[i];
+                                }
+                            }
+                        }
+
+                        if(minInd != -1 && gc.canMove(id, dirs[minInd])) {
+                            gc.moveRobot(id, dirs[minInd]);
+                        }
+
                     }
                 }
             }

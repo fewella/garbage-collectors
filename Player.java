@@ -76,6 +76,7 @@ public class Player {
                 Econ.turn(gc);
                 Rocket.launch(gc);
                 ComBot.turn();
+                Healer.run(gc);
                 gc.nextTurn();
             }
             catch(Exception e){
