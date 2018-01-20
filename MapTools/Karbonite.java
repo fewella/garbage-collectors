@@ -44,13 +44,13 @@ public class Karbonite {
         //third dimension is time
         //modify passMat
         short[][] passMat2 = Utils.Misc.cloneMat(passMat);
-        for(int y = 0; y < passMat[0].length; y++){
-            for(int x = 0; x < passMat.length; x++){
+        for(int y = 0; y < passMat.length; y++){
+            for(int x = 0; x < passMat[0].length; x++){
                 if(passMat[y][x] != 0) continue;
                 kernel:
                 for(int xi = -1; xi <= 1; xi++){
                     for(int yi = -1; yi <= 1; yi++){
-                        if(y+yi < 0 || y+yi >= passMat[0].length || x+xi < 0 || x+xi >= passMat.length) continue;
+                        if(y+yi < 0 || y+yi >= passMat.length || x+xi < 0 || x+xi >= passMat[0].length) continue;
                         if(passMat[y+yi][x+xi] == 1){
                             passMat2[y][x] = 1;
                             break kernel;

@@ -42,35 +42,44 @@ class Econ {
 			HashSet<Unit> stayFactory = new HashSet<>(); //these units will not go out to look for karbonite/make new factories
 			//FACTORIES
 			for (Unit u : Player.factory) {
-				VecUnit wF = gc.senseNearbyUnitsByType(u.location().mapLocation(), 2, UnitType.Worker);
-				for (int i = 0; i < wF.size() && i < 2; i++) {
-					Unit temp = wF.get(i);
-					stayFactory.add(temp);
-					if (u.health() == u.maxHealth()) {
-						for (int k = 0; k < 8; k++) {
-							if (/*gc.round()%50==4 && */gc.canReplicate(temp.id(), dirs[k])) {
-								//NOTE: ^^^ contains an artificial cap; remove later
-								gc.replicate(temp.id(), dirs[k]);
-								karb = gc.karbonite();
+				if(factoryUp) {
+					VecUnit wF = gc.senseNearbyUnitsByType(u.location().mapLocation(), 2, UnitType.Worker);
+					for (int i = 0; i < wF.size() && i < 2; i++) {
+						Unit temp = wF.get(i);
+						stayFactory.add(temp);
+						if (u.health() == u.maxHealth()) {
+							for (int k = 0; k < 8; k++) {
+								if (/*gc.round()%50==4 && */gc.canReplicate(temp.id(), dirs[k])) {
+									//NOTE: ^^^ contains an artificial cap; remove later
+									gc.replicate(temp.id(), dirs[k]);
+									karb = gc.karbonite();
+								}
 							}
+						} else {
+							if (gc.canBuild(temp.id(), u.id()))
+								gc.build(temp.id(), u.id());
 						}
-					} else {
-						if (gc.canBuild(temp.id(), u.id()))
-							gc.build(temp.id(), u.id());
 					}
-				}
-				//uncomment when Healers move away
+					//uncomment when Healers move away
 						/*if(Player.ranger.size()/6 > Player.healer.size()){
 							if (gc.canProduceRobot(u.id(), UnitType.Healer))
 								gc.produceRobot(u.id(), UnitType.Healer);
 						}*/
-				//else{
-				if (gc.canProduceRobot(u.id(), UnitType.Ranger))
-					gc.produceRobot(u.id(), UnitType.Ranger);
-				//}
-				karb = gc.karbonite();
-				for (int k = 0; k < 8; k++)
-					if (gc.canUnload(u.id(), dirs[k])) gc.unload(u.id(), dirs[k]);
+					//else{
+					if (gc.canProduceRobot(u.id(), UnitType.Ranger))
+						gc.produceRobot(u.id(), UnitType.Ranger);
+					//}
+					karb = gc.karbonite();
+					for (int k = 0; k < 8; k++)
+						if (gc.canUnload(u.id(), dirs[k])) gc.unload(u.id(), dirs[k]);
+				}
+				else{
+					//temporary quickfix - remove later
+					if(u.structureIsBuilt() == 1) {
+						factoryUp = true;
+						System.out.println("round " + gc.round() + ": Built initial factory!");
+					}
+				}
 			}
 
 			//WORKERS
@@ -110,6 +119,7 @@ class Econ {
 							if (gc.canBuild(u.id(), f.id())) {
 								gc.build(u.id(), f.id());
 								doneAction = true;
+								//for some reason doesn't work - fix later
 								if(f.structureIsBuilt() == 1) {
 									factoryUp = true;
 									System.out.println("round " + gc.round() + ": Built initial factory!");
