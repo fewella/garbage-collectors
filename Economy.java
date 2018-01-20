@@ -160,7 +160,7 @@ class Econ {
 					}
 				} else {
 					//normal code
-					VecUnit v = gc.senseNearbyUnitsByType(u.location().mapLocation(), 2, UnitType.Factory);
+					VecUnit v = gc.senseNearbyUnitsByType(mapLoc, 2, UnitType.Factory);
 					if(!stayFactory.contains(u)) {
 						VecUnit nearRock = gc.senseNearbyUnitsByType(mapLoc, 2, UnitType.Rocket);
 						if (gc.round() > 250 && nearRock.size() != 0) {
@@ -183,7 +183,7 @@ class Econ {
 								}
 							}
 						}
-						VecUnit nearFac = gc.senseNearbyUnitsByType(u.location().mapLocation(), 4, UnitType.Factory);
+						VecUnit nearFac = gc.senseNearbyUnitsByType(mapLoc, 4, UnitType.Factory);
 						if (nearFac.size() == 0) {
 							for (int k = 0; k < 8; k++) {
 								if (gc.canBlueprint(u.id(), UnitType.Factory, dirs[k])) {
@@ -195,7 +195,7 @@ class Econ {
 						}
 						if (nearFac.size() != 0) {
 							Unit fac = nearFac.get(0);
-							Direction avoid = u.location().mapLocation().directionTo(fac.location().mapLocation());
+							Direction avoid = mapLoc.directionTo(fac.location().mapLocation());
 							for (int k = 0; k < 8; k++) {
 								if (!dirs[k].equals(avoid)) {
 									if (gc.isMoveReady(u.id()) && gc.canMove(u.id(), dirs[k]))
@@ -214,7 +214,7 @@ class Econ {
 	                        }
 	                    }*/
 						/*if( gc.round() < (225/u.workerBuildHealth())+1 ) {
- 	        	            VecUnit v=gc.senseNearbyUnitsByType(u.location().mapLocation(),2,UnitType.Factory);
+ 	        	            VecUnit v=gc.senseNearbyUnitsByType(mapLoc,2,UnitType.Factory);
  	                        for (long k=v.size()1; k>=0; k) {
  	                            if (gc.canBuild(u.id(),v.get(k).id())) {
  	                                gc.build(u.id(),v.get(k).id());
@@ -236,6 +236,9 @@ class Econ {
 		} else {
 			//Mars code
 			for (Unit u : Player.worker) {
+				if (!u.location().isOnMap()) continue;
+				MapLocation mapLoc = u.location().mapLocation();
+				boolean doneAction = false;
 				for (int k = 0; k < 8; k++) {
 					if (gc.canHarvest(u.id(), dirs[k])) {
 						if (gc.round() > 1 && karb < 400) {
@@ -245,9 +248,9 @@ class Econ {
 						}
 					}
 				}
-				VecUnit nearRoc = gc.senseNearbyUnitsByType(u.location().mapLocation(), 10, UnitType.Rocket);
+				VecUnit nearRoc = gc.senseNearbyUnitsByType(mapLoc, 10, UnitType.Rocket);
 				if (nearRoc.size() != 0) {
-					Direction avoid = u.location().mapLocation().directionTo(nearRoc.get(0).location().mapLocation());
+					Direction avoid = mapLoc.directionTo(nearRoc.get(0).location().mapLocation());
 					for (int k = 0; k < 8; k++) {
 						if (!dirs[k].equals(avoid)) {
 							if (gc.isMoveReady(u.id()) && gc.canMove(u.id(), dirs[k]))
@@ -266,9 +269,14 @@ class Econ {
 		}
 	}
 	private static boolean stayByRocket(GameController gc, Unit u, Unit r) {
-		if (!u.location().mapLocation().isAdjacentTo(r.location().mapLocation())) {
-			if (gc.isMoveReady(u.id()) && gc.canMove(u.id(), u.location().mapLocation().directionTo(r.location().mapLocation()))) {
-				gc.moveRobot(u.id(), u.location().mapLocation().directionTo(r.location().mapLocation()));
+		if (!u.location().isOnMap()){
+			System.out.println("ERROR: Attempted call to stayByRocket on a unit in space/garrison");
+			return false;
+		}
+		MapLocation mapLoc = u.location().mapLocation();
+		if (!mapLoc.isAdjacentTo(r.location().mapLocation())) {
+			if (gc.isMoveReady(u.id()) && gc.canMove(u.id(), mapLoc.directionTo(r.location().mapLocation()))) {
+				gc.moveRobot(u.id(), mapLoc.directionTo(r.location().mapLocation()));
 				return false;
 			}
 			return true;
