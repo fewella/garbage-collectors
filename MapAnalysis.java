@@ -262,7 +262,7 @@ class MapAnalysis {
         }
         return locs;
     }
-    private static void baseFactoryQueue(MapLocation baseLocation, short[][] baseMat, short[][] passMat, short[][] karbMat){
+    private static void baseFactoryQueue(MapLocation baseLocation, short[][] baseMat, short[][] passMat, int[][] karbMat){
         //Returns a priorityQueue of locations to build factories
         //Priority based on distance to center and lost Karbonite
         //Locations guaranteed to be valid

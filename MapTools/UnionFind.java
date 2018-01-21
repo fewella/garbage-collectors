@@ -8,7 +8,7 @@ public class UnionFind {
     private static short[] idEarth, idMars;
     private static short[] szEarth, szMars;
 
-    public static void setup(GameController gameC, short[][] passE, short[][] passM, short[][] karbE, short[][] karbM){
+    public static void setup(GameController gameC, short[][] passE, short[][] passM, int[][] karbE, int[][] karbM){
         gc = gameC;
         unionFind(Planet.Earth, passE, karbE);
         unionFind(Planet.Mars, passM, karbM);
@@ -58,7 +58,7 @@ public class UnionFind {
         return karb[root(id, (short)(y*w+x))];
     }
 
-    private static void unionFind(Planet p, short[][] passMat, short[][] karbMat){
+    private static void unionFind(Planet p, short[][] passMat, int[][] karbMat){
         //Union-find:
         //https://www.cs.princeton.edu/~rs/AlgsDS07/01UnionFind.pdf
         //add nodes

@@ -5,9 +5,9 @@ import java.util.ArrayList;
 
 public class Karbonite {
     private static GameController gc;
-    private static short[][] karboniteMatEarth;
+    private static int[][] karboniteMatEarth;
     private static int karboniteTotalEarth;
-    private static ArrayList<short[][]> karbonite3dMat; //(should take .5 MB max)
+    private static ArrayList<int[][]> karbonite3dMat; //(should take .5 MB max)
     private static ArrayList<Integer> karboniteTotalArray, karboniteRoundArray;
 
     public static void setup(GameController gameC, short[][] passM){
@@ -15,7 +15,7 @@ public class Karbonite {
         karboniteMat();
         karbonite3dMat(passM);
     }
-    public static short[][] matrix(Planet p, int round){
+    public static int[][] matrix(Planet p, int round){
         if(p == Planet.Earth){
             return karboniteMatEarth;
         }
@@ -23,7 +23,7 @@ public class Karbonite {
             if (round < 1) round = 1;
             else if (round > 1000) round = 1000;
             int i = Utils.Misc.binarySearch(karboniteRoundArray, round);
-            if(karboniteRoundArray.get(i) != round) i--;
+            if(i >= karboniteRoundArray.size() || karboniteRoundArray.get(i) != round) i--;
             return karbonite3dMat.get(i);
         }
     }
@@ -35,7 +35,7 @@ public class Karbonite {
             if (round < 1) round = 1;
             else if (round > 1000) round = 1000;
             int i = Utils.Misc.binarySearch(karboniteRoundArray, round);
-            if(karboniteRoundArray.get(i) != round) i--;
+            if(i >= karboniteRoundArray.size() || karboniteRoundArray.get(i) != round) i--;
             return karboniteTotalArray.get(i);
         }
     }
@@ -61,7 +61,7 @@ public class Karbonite {
         }
         //process asteroids
         AsteroidPattern asteroids = gc.asteroidPattern();
-        short[][] cumulativeMat = new short[(int)gc.startingMap(Planet.Mars).getHeight()][(int)gc.startingMap(Planet.Mars).getWidth()];
+        int[][] cumulativeMat = new int[(int)gc.startingMap(Planet.Mars).getHeight()][(int)gc.startingMap(Planet.Mars).getWidth()];
         int cumulative = 0;
         karbonite3dMat = new ArrayList<>();
         karboniteTotalArray = new ArrayList<>();
@@ -86,7 +86,7 @@ public class Karbonite {
     private static void karboniteMat(){
         //same outputs as PlanetMap.initialKarboniteAt
         PlanetMap earth = gc.startingMap(Planet.Earth);
-        karboniteMatEarth = new short[(int)earth.getHeight()][(int)earth.getWidth()];
+        karboniteMatEarth = new int[(int)earth.getHeight()][(int)earth.getWidth()];
         karboniteTotalEarth = 0;
         for(int y = 0; y < earth.getHeight(); y++){
             for(int x = 0; x < earth.getWidth(); x++){

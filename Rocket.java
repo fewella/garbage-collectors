@@ -13,8 +13,8 @@ class Rocket {
 				}
 			}
 			if(r.structureGarrison().size() == r.structureMaxCapacity() || r.health() < 120 || gc.round() > 500) {
-				short[][] karb = MapTools.Karbonite.matrix(Planet.Mars, (int)(gc.round()+gc.currentDurationOfFlight()));
-				int minScore = 9999;
+				int[][] karb = MapTools.Karbonite.matrix(Planet.Mars, (int)(gc.round()+gc.currentDurationOfFlight()));
+				int minScore = 999999999;
 				MapLocation dest = new MapLocation(Planet.Mars, 10, 10);	//shouldn't happen
 				for(int y = 0; y < Player.mapMars.getHeight(); y++){
 					for(int x = 0; x < Player.mapMars.getWidth(); x++) {
@@ -40,7 +40,7 @@ class Rocket {
 					System.out.println("Launched");
 				}
 				else
-					System.out.println("Bad dest");
+					System.out.println("Bad dest: " + dest.getX() + ", " + dest.getY());
 			}
 			if( r.location().isOnPlanet(Planet.Mars) ) {
 				for( int k = 0; k < 8; k++ ) {
