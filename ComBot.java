@@ -7,12 +7,12 @@ import java.util.*;
 class Snipe {
 	public Snipe(int health, MapLocation loc1) {
 		loc = loc1;
-		shots = (health + 39) / 40;
+		shots = (health + 29) / 30;
 	}
 
 	void set(int health, MapLocation loc1) {
 		loc = loc1;
-		shots = (health + 39) / 40;
+		shots = (health + 29) / 30;
 	}
 
 	int shots;
@@ -70,12 +70,13 @@ class ComBot {
 				snipePos++;
 				snipePos %= snipe.length;
 				snipe[snipePos].set((int) enemy[i].maxHealth(), enemy[i].location().mapLocation());
-
+				//System.out.println("added snipe");
 			}
 		}
-		if (gc.researchInfo().getLevel(UnitType.Ranger) >= 3 && snipePos != -1) {
+		if (gc.researchInfo().getLevel(UnitType.Ranger) >= 2 && snipePos != -1) {
 			int ids[] = new int[10];
 			int i = 0;
+			System.out.println("considering sniping");
 			for (int sp = snipePos; sp != (snipePos + 1) % snipe.length; sp = (sp + snipe.length - 1) % snipe.length) {
 				if (snipe[sp].loc == null)
 					continue;
@@ -87,6 +88,7 @@ class ComBot {
 						if (found == snipe[sp].shots) {
 							for (int k = 0; k < found; k++) {
 								gc.beginSnipe(ids[k], snipe[sp].loc);
+								System.out.println("sniping");
 							}
 							snipe[sp].loc = null;
 						}
