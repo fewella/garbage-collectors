@@ -81,7 +81,7 @@ public class Player {
         		}
                 else
                 	MarsWorker.turn(gc);
-                Rocket.launch(gc);
+                Rocket.turn(gc);
                 ComBot.turn();
                 Healer.run(gc);
                 gc.nextTurn();

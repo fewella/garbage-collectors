@@ -24,13 +24,10 @@ class Econ {
 
 	static void turn(GameController gc) {
 		//overall structure:
-//		if(Earth)
-//		    loop factories
+//		loop factories
 //		    loop workers
 //              initialFactory OR
 //              normalCode
-//		else
-//		    loop workers
 
 		long karb = gc.karbonite();    //NOTE: global update after every action that affects it
 		//Earth strategy:
