@@ -11,7 +11,9 @@ class Econ {
 	static boolean factoryPlaced = false;
 	static int[][] initBFS;
 	static MapLocation initLoc;
-
+	static int[][] karbMapBFS;
+	static ArrayList<MapLocation> dest = new ArrayList<MapLocation>();
+	static long round = Player.gc.round();
 	static void setup() {
 		if (Player.gc.planet() == Planet.Earth) {
 			//initial factory
@@ -33,7 +35,7 @@ class Econ {
 		//Earth strategy:
 		//1. Initial factory
 		//2. Normal Code
-		boolean madeRocket = false;
+		int madeRocket = 0;
 		int replicate = 0;
 		HashSet<Unit> stayFactory = new HashSet<>(); //these units will not go out to look for karbonite/make new factories
 		//FACTORIES
@@ -45,7 +47,7 @@ class Econ {
 					stayFactory.add(temp);
 					if (u.health() == u.maxHealth()) {
 						for (int k = 0; k < 8; k++) {
-							if (/*gc.round()%50==4 && */gc.canReplicate(temp.id(), dirs[k])) {
+							if (/*round%50==4 && */gc.canReplicate(temp.id(), dirs[k])) {
 								//NOTE: ^^^ contains an artificial cap; remove later
 								gc.replicate(temp.id(), dirs[k]);
 								karb = gc.karbonite();
@@ -73,7 +75,7 @@ class Econ {
 				//temporary quickfix - remove later
 				if(u.structureIsBuilt() == 1) {
 					factoryUp = true;
-					System.out.println("round " + gc.round() + ": Built initial factory!");
+					System.out.println("round " + round + ": Built initial factory!");
 				}
 			}
 		}
@@ -118,7 +120,7 @@ class Econ {
 							//for some reason doesn't work - fix later
 							if(f.structureIsBuilt() == 1) {
 								factoryUp = true;
-								System.out.println("round " + gc.round() + ": Built initial factory!");
+								System.out.println("round " + round + ": Built initial factory!");
 							}
 						}
 					} catch (RuntimeException e){
@@ -128,12 +130,12 @@ class Econ {
 							karb = gc.karbonite();
 							doneAction = true;
 							factoryPlaced = true;
-							System.out.println("round " + gc.round() + ": Placed initial factory");
+							System.out.println("round " + round + ": Placed initial factory");
 						}
 					}
 				}
 				//3. replicate/karb
-				if(u.abilityHeat() < 10 && /*gc.round()%50==4 && */(karb > bc.bcUnitTypeBlueprintCost(UnitType.Factory)+bc.bcUnitTypeReplicateCost(UnitType.Worker) || (factoryPlaced && karb > bc.bcUnitTypeReplicateCost(UnitType.Worker)))){
+				if(u.abilityHeat() < 10 && /*round%50==4 && */(karb > bc.bcUnitTypeBlueprintCost(UnitType.Factory)+bc.bcUnitTypeReplicateCost(UnitType.Worker) || (factoryPlaced && karb > bc.bcUnitTypeReplicateCost(UnitType.Worker)))){
 					//NOTE: contains an artificial ^^^ cap; remove later
 					//improve later
 					for (int k = 0; k < 8; k++) {
@@ -156,10 +158,11 @@ class Econ {
 				}
 			} else {
 				//normal code
-				VecUnit v = gc.senseNearbyUnitsByType(mapLoc, 2, UnitType.Factory);
+				karbBFS();
+				VecUnit nearFac = gc.senseNearbyUnitsByType(mapLoc, 4, UnitType.Factory);
 				if(!stayFactory.contains(u)) {
 					VecUnit nearRock = gc.senseNearbyUnitsByType(mapLoc, 2, UnitType.Rocket);
-					if (gc.round() > 250 && nearRock.size() != 0) {
+					if (round > 250 && nearRock.size() != 0) {
 						if (gc.canBuild(u.id(), nearRock.get(0).id())) {
 							gc.build(u.id(), nearRock.get(0).id());
 							doneAction = true;
@@ -169,22 +172,56 @@ class Econ {
 							doneAction = true;
 						}
 					}
-					if (gc.round() > 250 && !madeRocket && Player.rocket.size() == 0 && !doneAction) {
+					if (round > 250 && madeRocket < 3 && Player.rocket.size() == 0 && !doneAction && (nearFac.size() == 0 || round >600) ) {
 						//move from factories
 						for (int k = 0; k < 8; k++) {
 							if (gc.canBlueprint(u.id(), UnitType.Rocket, dirs[k])) {
 								gc.blueprint(u.id(), UnitType.Rocket, dirs[k]);
 								karb = gc.karbonite();
-								madeRocket = true;
+								madeRocket++;
+								doneAction = true;
+								break;
 							}
 						}
 					}
-					VecUnit nearFac = gc.senseNearbyUnitsByType(mapLoc, 4, UnitType.Factory);
-					if (nearFac.size() == 0) {
+					if (nearFac.size() == 0 && !doneAction) {
+						if( (Player.factory.size() > 5 || gc.karbonite() < 100) && dest.size() > 0 ) {
+							int min = 9999;
+							int dire = -1;
+							int move = 0;
+							for (int k = 0; k < 8; k++) {
+								MapLocation temp = u.location().mapLocation().add(dirs[k]);
+								int movetemp = karbMapBFS[temp.getY()][temp.getX()];
+								if(Math.min(movetemp, min) != min) {
+									dire = k;
+									min = Math.min(movetemp, min);
+									move = movetemp;
+								}
+							}
+							if (move == 1 ) {
+								if(gc.canHarvest(u.id(), dirs[dire])) {
+									if (round > 1 && karb < 400) {
+										gc.harvest(u.id(), dirs[dire]);
+										karb = gc.karbonite();
+									}
+								}
+								else {
+									//Probably make BFS take a hashset??
+									//Remove - it's empty
+									ArrayList<MapLocation> temp = new ArrayList<MapLocation>();
+									for( MapLocation m: dest) {
+										if( !m.equals(u.location().mapLocation().add(dirs[dire])) )
+											temp.add(m);
+									}
+									dest = temp;
+								}
+							}
+						}
 						for (int k = 0; k < 8; k++) {
 							if (gc.canBlueprint(u.id(), UnitType.Factory, dirs[k])) {
 								gc.blueprint(u.id(), UnitType.Factory, dirs[k]);
 								karb = gc.karbonite();
+								doneAction = false;
 								break;
 							}
 						}
@@ -196,33 +233,6 @@ class Econ {
 							if (!dirs[k].equals(avoid)) {
 								if (gc.isMoveReady(u.id()) && gc.canMove(u.id(), dirs[k]))
 									gc.moveRobot(u.id(), dirs[k]);
-							}
-						}
-					}
-					/*if( (Player.worker.size() <= Player.factory.size()*2 && gc.round() < 150 && replicate < 3) || Player.worker.size() <= Player.factory.size()*1.5) {
-        	            for( int k = 0; k < 8; k++) {
-                            if( gc.canReplicate(u.id(), dirs[k])) {
-	                            gc.replicate(u.id(), dirs[k]);
-	                            replicate++;
-	                            karb = gc.karbonite();
-	                            System.out.println("replicated");
-                            }
-                        }
-                    }*/
-					/*if( gc.round() < (225/u.workerBuildHealth())+1 ) {
-        	            VecUnit v=gc.senseNearbyUnitsByType(mapLoc,2,UnitType.Factory);
-                        for (long k=v.size()1; k>=0; k) {
-                            if (gc.canBuild(u.id(),v.get(k).id())) {
-                                gc.build(u.id(),v.get(k).id());
-                            }
-                        }
-                    }*/
-					for (int k = 0; k < 8; k++) {
-						if (gc.canHarvest(u.id(), dirs[k])) {
-							if (gc.round() > 1 && karb < 400) {
-								gc.harvest(u.id(), dirs[k]);
-								karb = gc.karbonite();
-								break;
 							}
 						}
 					}
@@ -244,5 +254,20 @@ class Econ {
 			return true;
 		}
 		return true;
+	}
+	//[y][x] = [height][width]
+	private static void karbBFS() {
+		if(round == 0) {
+			PlanetMap earth = Player.gc.startingMap(Planet.Earth);
+			for(int y = 0; y < earth.getHeight(); y++){
+	            for(int x = 0; x < earth.getWidth(); x++){
+	                long karb = earth.initialKarboniteAt(new MapLocation(earth.getPlanet(), x, y));
+	                if( karb > 0 ) {
+	                	dest.add(new MapLocation(Planet.Earth, x, y));
+	                }
+	            }
+			}
+		}
+		karbMapBFS = MapAnalysis.BFS(dest);
 	}
 }
