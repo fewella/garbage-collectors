@@ -13,7 +13,6 @@ class Econ {
 	static MapLocation initLoc;
 	static int[][] karbMapBFS;
 	static ArrayList<MapLocation> dest = new ArrayList<MapLocation>();
-	static long round = Player.gc.round();
 	static void setup() {
 		if (Player.gc.planet() == Planet.Earth) {
 			//initial factory
@@ -32,6 +31,7 @@ class Econ {
 //              normalCode
 
 		long karb = gc.karbonite();    //NOTE: global update after every action that affects it
+		long round = Player.gc.round();
 		//Earth strategy:
 		//1. Initial factory
 		//2. Normal Code
@@ -40,44 +40,42 @@ class Econ {
 		HashSet<Unit> stayFactory = new HashSet<>(); //these units will not go out to look for karbonite/make new factories
 		//FACTORIES
 		for (Unit u : Player.factory) {
-			if(factoryUp) {
-				VecUnit wF = gc.senseNearbyUnitsByType(u.location().mapLocation(), 2, UnitType.Worker);
-				for (int i = 0; i < wF.size() && i < 2; i++) {
-					Unit temp = wF.get(i);
-					stayFactory.add(temp);
-					if (u.health() == u.maxHealth()) {
-						for (int k = 0; k < 8; k++) {
-							if (/*round%50==4 && */gc.canReplicate(temp.id(), dirs[k])) {
-								//NOTE: ^^^ contains an artificial cap; remove later
-								gc.replicate(temp.id(), dirs[k]);
-								karb = gc.karbonite();
-							}
-						}
-					} else {
-						if (gc.canBuild(temp.id(), u.id()))
-							gc.build(temp.id(), u.id());
-					}
-				}
-				//uncomment when Healers move away
-				if(Player.ranger.size()/6 > Player.healer.size()){
-					if (gc.canProduceRobot(u.id(), UnitType.Healer))
-						gc.produceRobot(u.id(), UnitType.Healer);
-				}
-				else{
-					if (gc.canProduceRobot(u.id(), UnitType.Ranger))
-						gc.produceRobot(u.id(), UnitType.Ranger);
-				}
-				karb = gc.karbonite();
-				for (int k = 0; k < 8; k++)
-					if (gc.canUnload(u.id(), dirs[k])) gc.unload(u.id(), dirs[k]);
-			}
-			else{
+			if(!factoryUp) {
 				//temporary quickfix - remove later
 				if(u.structureIsBuilt() == 1) {
 					factoryUp = true;
-					System.out.println("round " + round + ": Built initial factory!");
+					System.out.println("round " + round + ": Built initial factory");
 				}
 			}
+			VecUnit wF = gc.senseNearbyUnitsByType(u.location().mapLocation(), 2, UnitType.Worker);
+			for (int i = 0; i < wF.size() && i < 2; i++) {
+				Unit temp = wF.get(i);
+				stayFactory.add(temp);
+				if (u.health() == u.maxHealth()) {
+					for (int k = 0; k < 8; k++) {
+						if (/*round%50==4 && */gc.canReplicate(temp.id(), dirs[k])) {
+							//NOTE: ^^^ contains an artificial cap; remove later
+							gc.replicate(temp.id(), dirs[k]);
+							karb = gc.karbonite();
+						}
+					}
+				} else {
+					if (gc.canBuild(temp.id(), u.id()))
+						gc.build(temp.id(), u.id());
+				}
+			}
+			//uncomment when Healers move away
+			if(Player.ranger.size()/6 > Player.healer.size()){
+				if (gc.canProduceRobot(u.id(), UnitType.Healer))
+					gc.produceRobot(u.id(), UnitType.Healer);
+			}
+			else{
+				if (gc.canProduceRobot(u.id(), UnitType.Ranger))
+					gc.produceRobot(u.id(), UnitType.Ranger);
+			}
+			karb = gc.karbonite();
+			for (int k = 0; k < 8; k++)
+				if (gc.canUnload(u.id(), dirs[k])) gc.unload(u.id(), dirs[k]);
 		}
 
 		//WORKERS
@@ -158,7 +156,7 @@ class Econ {
 				}
 			} else {
 				//normal code
-				karbBFS();
+				karbBFS(round);
 				VecUnit nearFac = gc.senseNearbyUnitsByType(mapLoc, 4, UnitType.Factory);
 				if(!stayFactory.contains(u)) {
 					VecUnit nearRock = gc.senseNearbyUnitsByType(mapLoc, 2, UnitType.Rocket);
@@ -256,12 +254,12 @@ class Econ {
 		return true;
 	}
 	//[y][x] = [height][width]
-	private static void karbBFS() {
+	private static void karbBFS(long round) {
 		if(round == 0) {
 			PlanetMap earth = Player.gc.startingMap(Planet.Earth);
 			for(int y = 0; y < earth.getHeight(); y++){
 	            for(int x = 0; x < earth.getWidth(); x++){
-	                long karb = earth.initialKarboniteAt(new MapLocation(earth.getPlanet(), x, y));
+	                long karb = MapTools.Karbonite.matrix(Planet.Earth, 0)[y][x];
 	                if( karb > 0 ) {
 	                	dest.add(new MapLocation(Planet.Earth, x, y));
 	                }

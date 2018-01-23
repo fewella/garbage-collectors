@@ -1,5 +1,6 @@
 package MapTools;
 
+import Utils.Tuple;
 import bc.*;
 import java.util.ArrayList;
 
@@ -10,10 +11,13 @@ public class Karbonite {
     private static ArrayList<int[][]> karbonite3dMat; //(should take .5 MB max)
     private static ArrayList<Integer> karboniteTotalArray, karboniteRoundArray;
 
-    public static void setup(GameController gameC, short[][] passM){
+    public static void setup(GameController gameC, int[][] passM){
         gc = gameC;
-        karboniteMat();
-        karbonite3dMat(passM);
+        Tuple<int[][], Integer> temp = karboniteMat(Planet.Earth);
+        karboniteMatEarth = temp.x;
+        karboniteTotalEarth = temp.y;
+        System.out.println("Earth total karbonite: " + karboniteTotalEarth);
+        karbonite3dMat(passM, karboniteMat(Planet.Mars));
     }
     public static int[][] matrix(Planet p, int round){
         if(p == Planet.Earth){
@@ -40,10 +44,10 @@ public class Karbonite {
         }
     }
 
-    private static void karbonite3dMat(short[][] passMat){
+    private static void karbonite3dMat(int[][] passMat, Tuple<int[][], Integer> t){
         //third dimension is time
         //modify passMat
-        short[][] passMat2 = Utils.Misc.cloneMat(passMat);
+        int[][] passMat2 = Utils.Misc.cloneMat(passMat);
         for(int y = 0; y < passMat.length; y++){
             for(int x = 0; x < passMat[0].length; x++){
                 if(passMat[y][x] != 0) continue;
@@ -61,8 +65,8 @@ public class Karbonite {
         }
         //process asteroids
         AsteroidPattern asteroids = gc.asteroidPattern();
-        int[][] cumulativeMat = new int[(int)gc.startingMap(Planet.Mars).getHeight()][(int)gc.startingMap(Planet.Mars).getWidth()];
-        int cumulative = 0;
+        int[][] cumulativeMat = t.x;
+        int cumulative = t.y;
         karbonite3dMat = new ArrayList<>();
         karboniteTotalArray = new ArrayList<>();
         karboniteRoundArray = new ArrayList<>();
@@ -83,18 +87,18 @@ public class Karbonite {
         }
         System.out.println("Mars total reachable karbonite: " + cumulative);
     }
-    private static void karboniteMat(){
+    private static Tuple<int[][], Integer> karboniteMat(Planet p){
         //same outputs as PlanetMap.initialKarboniteAt
-        PlanetMap earth = gc.startingMap(Planet.Earth);
-        karboniteMatEarth = new int[(int)earth.getHeight()][(int)earth.getWidth()];
-        karboniteTotalEarth = 0;
-        for(int y = 0; y < earth.getHeight(); y++){
-            for(int x = 0; x < earth.getWidth(); x++){
-                long karb = earth.initialKarboniteAt(new MapLocation(earth.getPlanet(), x, y));
-                karboniteMatEarth[y][x] = (short)karb;
-                karboniteTotalEarth += karb;
+        PlanetMap pm = gc.startingMap(Planet.Earth);
+        int[][] mat = new int[(int)pm.getHeight()][(int)pm.getWidth()];
+        int total = 0;
+        for(int y = 0; y < pm.getHeight(); y++){
+            for(int x = 0; x < pm.getWidth(); x++){
+                long karb = pm.initialKarboniteAt(new MapLocation(pm.getPlanet(), x, y));
+                mat[y][x] = (short)karb;
+                total += karb;
             }
         }
-        System.out.println("Earth total karbonite: " + karboniteTotalEarth);
+        return new Tuple<>(mat, total);
     }
 }

@@ -1,3 +1,6 @@
+import MapTools.Karbonite;
+import MapTools.Passable;
+import MapTools.UnionFind;
 import bc.*;
 import java.util.*;
 
@@ -7,7 +10,6 @@ public class Player {
     //global variables
     static GameController gc;
     static PlanetMap map, mapEarth, mapMars;
-    static Veci32 arrayEarth, arrayMars;
     static Queue<Unit> worker, knight, ranger, healer, mage, factory, rocket;
 
     public static void main(String[] args) {
@@ -20,7 +22,6 @@ public class Player {
 
             MapAnalysis.setup();
             Econ.setup();
-            Rocket.occupied = new int[(int)mapMars.getHeight()][(int)mapMars.getWidth()];
 
             //queue research
             gc.queueResearch(UnitType.Ranger); //25
@@ -41,50 +42,49 @@ public class Player {
             e.printStackTrace();
         }
         while (true) {
-            try{
-                //game cycle
-            	if (gc.round()%3==0) {
-            		System.gc();
-            	}
-                worker = new LinkedList<>();
-                knight = new LinkedList<>();
-                ranger = new LinkedList<>();
-                healer = new LinkedList<>();
-                mage = new LinkedList<>();
-                factory = new LinkedList<>();
-                rocket = new LinkedList<>();
+            try {
+	            //game cycle
+	            if (gc.round() % 3 == 0) {
+		            System.gc();
+	            }
+	            worker = new LinkedList<>();
+	            knight = new LinkedList<>();
+	            ranger = new LinkedList<>();
+	            healer = new LinkedList<>();
+	            mage = new LinkedList<>();
+	            factory = new LinkedList<>();
+	            rocket = new LinkedList<>();
 
-                VecUnit units = gc.myUnits();
-                //System.out.println("Units "+ units.size());
-                for(int i = 0; i < units.size(); i++) {
-                    Unit temp = units.get(i);
-                    if (temp.unitType()==UnitType.Worker) {
-                        worker.add(temp);
-                        //System.out.println("added worker");
-                    }
-                    else if (temp.unitType()==UnitType.Knight)
-                        knight.add(temp);
-                    else if (temp.unitType()==UnitType.Ranger)
-                        ranger.add(temp);
-                    else if (temp.unitType()==UnitType.Healer)
-                        healer.add(temp);
-                    else if (temp.unitType()==UnitType.Mage)
-                        mage.add(temp);
-                    else if (temp.unitType()==UnitType.Factory)
-                        factory.add(temp);
-                    else
-                        rocket.add(temp);
-                }
-                MapAnalysis.turn();
-                if (Player.gc.planet() == Planet.Earth) {
-                	Econ.turn(gc);
-        		}
-                else
-                	MarsWorker.turn(gc);
-                Rocket.turn(gc);
-                ComBot.turn();
-                Healer.run(gc);
-                gc.nextTurn();
+	            VecUnit units = gc.myUnits();
+	            //System.out.println("Units "+ units.size());
+	            for (int i = 0; i < units.size(); i++) {
+		            Unit temp = units.get(i);
+		            if (temp.unitType() == UnitType.Worker) {
+			            worker.add(temp);
+			            //System.out.println("added worker");
+		            } else if (temp.unitType() == UnitType.Knight)
+			            knight.add(temp);
+		            else if (temp.unitType() == UnitType.Ranger)
+			            ranger.add(temp);
+		            else if (temp.unitType() == UnitType.Healer)
+			            healer.add(temp);
+		            else if (temp.unitType() == UnitType.Mage)
+			            mage.add(temp);
+		            else if (temp.unitType() == UnitType.Factory)
+			            factory.add(temp);
+		            else
+			            rocket.add(temp);
+	            }
+	            //I'll uncomment when I actually get this part to work :)
+	            //MapAnalysis.turn();
+	            if (Player.gc.planet() == Planet.Earth) {
+		            Econ.turn(gc);
+	            } else
+		            MarsWorker.turn(gc);
+	            Rocket.turn(gc);
+	            ComBot.turn();
+	            Healer.run(gc);
+	            gc.nextTurn();
             }
             catch(Exception e){
                 System.out.println("Exception during game");
