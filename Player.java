@@ -45,9 +45,7 @@ public class Player {
         while (true) {
             try {
 	            //game cycle
-	            if (gc.round() % 2 == 0) {
-		            System.gc();
-	            }
+		        System.gc();
 	            worker = new LinkedList<>();
 	            knight = new LinkedList<>();
 	            ranger = new LinkedList<>();
