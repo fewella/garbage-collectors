@@ -22,6 +22,8 @@ class Snipe {
 }
 
 class ComBot {
+	
+	static final int RANGERRANGE=50;
 	static Direction[] dirs = Direction.values();
 	static Random rng = new Random(7);
 	static GameController gc;
@@ -138,14 +140,13 @@ class ComBot {
 		return u.unitType() != UnitType.Rocket && u.unitType() != UnitType.Factory;
 	}
 
-	static int pri(int e, Unit me) {
+	static int pri(int e, MapLocation pos) {
 		Unit u = enemy[e];
 		if (healths[e] <= 0)
 			return 99999;
 		MapLocation en = u.location().mapLocation();
-		MapLocation pos = me.location().mapLocation();
 		int d = d2(en, pos);
-		if (d > me.attackRange() || d <= 10)
+		if (d > RANGERRANGE || d <= 10)
 			return 99999;
 		int pri = (int) (3 * healths[e]);
 		if (robot(u) && Math.abs(u.damage()) > 0) {
@@ -160,10 +161,11 @@ class ComBot {
 	static void shootPeople() {
 		for (int i = 0; i < rangers; i++) {
 			if (gc.isAttackReady(myR[i].id())) {
+				MapLocation loc=gc.unit(myR[i].id()).location().mapLocation();
 				int minPri = 9999;
 				int shoot = -1;
 				for (int k = 0; k < enemies; k++) {
-					int pri = pri(k, myR[i]);
+					int pri = pri(k, loc);
 					if (pri < minPri) {
 						minPri = pri;
 						shoot = k;
@@ -313,11 +315,11 @@ class ComBot {
 								v++;
 							}
 						}
-						if (gc.senseNearbyUnitsByTeam(nloc, 50, ot).size() > 0) {
+						if (gc.senseNearbyUnitsByTeam(nloc, RANGERRANGE, ot).size() > 0) {
 							v--;
 						}
 						v *= 1000;
-						if (gc.isAttackReady(myR[i].id())) {
+						if (gc.unit(myR[i].id()).attackHeat()==0) {
 							if (toRock[i]) {
 								v += pRock[myR[i].location().mapLocation().getY()][myR[i].location().mapLocation()
 										.getX()];
@@ -329,7 +331,7 @@ class ComBot {
 							for (int k = 0; k < enemies; k++) {
 								mind = Math.min(mind, d2(nloc, enemy[k].location().mapLocation()));
 							}
-							if (mind <= myR[i].attackRange()) {
+							if (mind <= RANGERRANGE) {
 								v -= mind;
 							} else {
 								v += mind;
@@ -348,6 +350,5 @@ class ComBot {
 		}
 		shootPeople();
 		snipe();
-
 	}
 }

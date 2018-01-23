@@ -27,13 +27,14 @@ public class Player {
             gc.queueResearch(UnitType.Ranger); //25
             gc.queueResearch(UnitType.Ranger); //125
             gc.queueResearch(UnitType.Worker); //150
-            gc.queueResearch(UnitType.Rocket); //250
-            gc.queueResearch(UnitType.Ranger); //450
-            gc.queueResearch(UnitType.Worker); //525
+            gc.queueResearch(UnitType.Healer); //175
+            gc.queueResearch(UnitType.Rocket); //225
+            gc.queueResearch(UnitType.Ranger); //425
+            gc.queueResearch(UnitType.Healer); //525
             gc.queueResearch(UnitType.Worker); //600
             gc.queueResearch(UnitType.Worker); //675
-            gc.queueResearch(UnitType.Healer); //700
-            gc.queueResearch(UnitType.Healer); //800
+            gc.queueResearch(UnitType.Healer); //750
+            gc.queueResearch(UnitType.Worker); //825
             
             ComBot.init(gc);
         }
@@ -44,7 +45,7 @@ public class Player {
         while (true) {
             try {
 	            //game cycle
-	            if (gc.round() % 3 == 0) {
+	            if (gc.round() % 2 == 0) {
 		            System.gc();
 	            }
 	            worker = new LinkedList<>();
