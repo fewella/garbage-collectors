@@ -74,7 +74,7 @@ public class Healer {
                             closestEnemyLoc = notFriends.get(i).location().mapLocation();
                         }
                     }
-                    if (closestEnemyLoc != null) { // Means NOT clear of baddies
+                    if (closestEnemyLoc != null && friends.size() == 0) { // If see baddies and don't see friends, run
 
                         Direction enemyDirOpp = bc.bcDirectionOpposite(myMapLocation.directionTo(closestEnemyLoc));
                         if(gc.canMove(id, enemyDirOpp))
@@ -82,7 +82,21 @@ public class Healer {
                     }
                     else {
 
-                        int x = myMapLocation.getX();
+                        Direction bestDir = Direction.Center;
+                        int min = 1000;
+                        for(Direction dir : dirs) {
+                            MapLocation curLoc = myMapLocation.add(dir);
+                            if(curLoc.getX() < 0 || curLoc.getY() < 0 || curLoc.getX() >= gc.startingMap(gc.planet()).getWidth() || curLoc.getY() >= gc.startingMap(gc.planet()).getHeight())
+                                continue;
+                            int curMin = out[curLoc.getY()][curLoc.getX()];
+                            if(curMin < min && gc.canMove(id, dir)) {
+                                bestDir = dir;
+                            }
+                        }
+                        if(gc.canMove(id, bestDir))
+                            gc.moveRobot(id, bestDir);
+                        
+                        /*int x = myMapLocation.getX();
                         int y = myMapLocation.getY();
 
                         int minInd = -1;
@@ -104,7 +118,7 @@ public class Healer {
 
                         if(minInd != -1 && gc.canMove(id, dirs[minInd])) {
                             gc.moveRobot(id, dirs[minInd]);
-                        }
+                        }*/
 
                     }
                 }
