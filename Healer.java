@@ -52,11 +52,17 @@ public class Healer {
                     ArrayList<MapLocation> targetLocs = new ArrayList<MapLocation>();
                     for(Unit ranger : Player.ranger) {
                         if(ranger.health() < ranger.maxHealth()) {
-                            targetLocs.add(ranger.location().mapLocation());
+                            try {
+                                targetLocs.add(ranger.location().mapLocation());
+                            } catch (Exception e) {
+                                System.out.println("passing");
+                                continue;
+                            }
                         }
                     }
                     out = MapAnalysis.BFS(targetLocs);
                     searchedForRangers = true;
+                    //print(out);
                 }
 
                 VecUnit notFriends = gc.senseNearbyUnitsByTeam(myMapLocation, currentHealer.visionRange(), enemy);
@@ -74,8 +80,8 @@ public class Healer {
                             closestEnemyLoc = notFriends.get(i).location().mapLocation();
                         }
                     }
-                    if (closestEnemyLoc != null && friends.size() == 0) { // If see baddies and don't see friends, run
-
+                    //if (closestEnemyLoc != null && friends.size() == 0) { // If see baddies and don't see friends, run
+                    if(1==0) {
                         Direction enemyDirOpp = bc.bcDirectionOpposite(myMapLocation.directionTo(closestEnemyLoc));
                         if(gc.canMove(id, enemyDirOpp))
                             gc.moveRobot(id, enemyDirOpp);
@@ -83,19 +89,21 @@ public class Healer {
                     else {
 
                         Direction bestDir = Direction.Center;
-                        int min = 1000;
+                        int min = 99999;
                         for(Direction dir : dirs) {
                             MapLocation curLoc = myMapLocation.add(dir);
                             if(curLoc.getX() < 0 || curLoc.getY() < 0 || curLoc.getX() >= gc.startingMap(gc.planet()).getWidth() || curLoc.getY() >= gc.startingMap(gc.planet()).getHeight())
                                 continue;
                             int curMin = out[curLoc.getY()][curLoc.getX()];
                             if(curMin < min && gc.canMove(id, dir)) {
+                                min = curMin;
                                 bestDir = dir;
                             }
                         }
+                        System.out.println("I am team: " + team + " and moving: " + bestDir);
                         if(gc.canMove(id, bestDir))
                             gc.moveRobot(id, bestDir);
-                        
+
                         /*int x = myMapLocation.getX();
                         int y = myMapLocation.getY();
 
