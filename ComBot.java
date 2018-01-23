@@ -315,10 +315,11 @@ class ComBot {
 								v++;
 							}
 						}
-						if (gc.senseNearbyUnitsByTeam(nloc, RANGERRANGE, ot).size() > 0) {
-							v--;
-						}
 						v *= 1000;
+						if (gc.senseNearbyUnitsByTeam(nloc, RANGERRANGE, ot).size() > 0) {
+							v-=1100;
+						}
+						
 						if (gc.unit(myR[i].id()).attackHeat()==0) {
 							if (toRock[i]) {
 								v += pRock[myR[i].location().mapLocation().getY()][myR[i].location().mapLocation()
