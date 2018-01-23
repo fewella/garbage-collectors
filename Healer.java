@@ -55,7 +55,6 @@ public class Healer {
                             try {
                                 targetLocs.add(ranger.location().mapLocation());
                             } catch (Exception e) {
-                                System.out.println("passing");
                                 continue;
                             }
                         }
@@ -100,7 +99,7 @@ public class Healer {
                                 bestDir = dir;
                             }
                         }
-                        System.out.println("I am team: " + team + " and moving: " + bestDir);
+
                         if(gc.canMove(id, bestDir))
                             gc.moveRobot(id, bestDir);
 
