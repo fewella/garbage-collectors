@@ -76,7 +76,7 @@ class ComBot {
 		if (gc.researchInfo().getLevel(UnitType.Ranger) >= 2 && snipePos != -1) {
 			int ids[] = new int[10];
 			int i = 0;
-			System.out.println("considering sniping");
+			//System.out.println("considering sniping");
 			for (int sp = snipePos; sp != (snipePos + 1) % snipe.length; sp = (sp + snipe.length - 1) % snipe.length) {
 				if (snipe[sp].loc == null)
 					continue;
