@@ -179,7 +179,7 @@ class Econ {
 					}
 					if (round > 250 && madeRocket < 3 && Player.rocket.size() < 3 && !doneAction && (nearFac.size() == 0 || round >500) ) {
 						//move from factories
-						System.out.println("Trying to make rocket");
+						//System.out.println("Trying to make rocket");
 						for (int k = 0; k < 8; k++) {
 							if (gc.canBlueprint(u.id(), UnitType.Rocket, dirs[k])) {
 								gc.blueprint(u.id(), UnitType.Rocket, dirs[k]);
