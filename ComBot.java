@@ -5,16 +5,18 @@ import java.util.*;
 // import the API.
 // See xxx for the javadocs.
 class Snipe {
-	public Snipe(int health, MapLocation loc1) {
+	public Snipe(int health, MapLocation loc1, int id1) {
 		loc = loc1;
 		shots = (health + 29) / 30;
+		id=id1;
 	}
 
-	void set(int health, MapLocation loc1) {
+	void set(int health, MapLocation loc1, int id1) {
 		loc = loc1;
 		shots = (health + 29) / 30;
+		id=id1;
 	}
-
+	int id;
 	int shots;
 	MapLocation loc;
 }
@@ -38,7 +40,8 @@ class ComBot {
 	static Snipe[] snipe = new Snipe[20];
 	static int[][] bfs;
 	static Team ot;
-
+	static int[] dontSnipe=new int[20];
+	static int dontSnipePos=-1;
 	/*
 	 * shooting priorities: 1. Things that can hit you 2. Ties broken by health
 	 * 3. Ties broken by damage 4. Ties broken by closer
@@ -47,7 +50,7 @@ class ComBot {
 		gc = gameC;
 		ot = gc.team() == Team.Red ? Team.Blue : Team.Red;
 		for (int i = 0; i < snipe.length; i++) {
-			snipe[i] = new Snipe(10, null);
+			snipe[i] = new Snipe(10, null,-1);
 		}
 		VecUnit vu = Player.map.getInitial_units();
 		int p = 0;
@@ -66,31 +69,47 @@ class ComBot {
 
 	static void snipe() {
 		for (int i = 0; i < enemies; i++) {
-			if (!robot(enemy[i]) || enemy[i].unitType() == UnitType.Worker && enemy[i].movementHeat() == 0) {
-				snipePos++;
-				snipePos %= snipe.length;
-				snipe[snipePos].set((int) enemy[i].maxHealth(), enemy[i].location().mapLocation());
-				//System.out.println("added snipe");
+			if (!robot(enemy[i]) || enemy[i].movementHeat() == 0) {
+				boolean v=true;
+				for (int k=0; k<dontSnipe.length; k++) {
+					if (dontSnipe[k]==enemy[i].id()) {
+						v=false;
+						break;
+					}
+				}
+				if (v) {
+					snipePos++;
+					snipePos %= snipe.length;
+					snipe[snipePos].set((int) enemy[i].maxHealth(), enemy[i].location().mapLocation(),enemy[i].id());
+					//System.out.println("added snipe");
+				}
 			}
 		}
-		if (gc.researchInfo().getLevel(UnitType.Ranger) >= 2 && snipePos != -1) {
-			int ids[] = new int[10];
+		//if (gc.round()%25==0) System.out.println(gc.round()+" "+gc.researchInfo().getLevel(UnitType.Ranger));
+		if (gc.researchInfo().getLevel(UnitType.Ranger) >= 3 && snipePos != -1) {
+			int ids[] = new int[12];
 			int i = 0;
-			//System.out.println("considering sniping");
+			//System.out.print("\nconsidering sniping");
 			for (int sp = snipePos; sp != (snipePos + 1) % snipe.length; sp = (sp + snipe.length - 1) % snipe.length) {
+				//System.out.print(sp+" ");
 				if (snipe[sp].loc == null)
 					continue;
 				int found = 0;
 				while (i < rangers) {
-					if (myR[i].abilityCooldown() < 10 && bfs[myR[i].location().mapLocation().getY()][myR[i].location()
-							.mapLocation().getY()] > 9) {
+					//System.out.println("posSniper");
+					if (myR[i].abilityHeat() < 10 && bfs[myR[i].location().mapLocation().getY()][myR[i].location()
+							.mapLocation().getX()] >= 9  && gc.unit(myR[i].id()).attackHeat()==0) {
+						//System.out.println("sniper");
 						ids[found++] = myR[i].id();
 						if (found == snipe[sp].shots) {
 							for (int k = 0; k < found; k++) {
 								gc.beginSnipe(ids[k], snipe[sp].loc);
-								System.out.println("sniping");
+								//System.out.println("sniping");
 							}
 							snipe[sp].loc = null;
+							dontSnipePos=(dontSnipePos+1)%dontSnipe.length;
+							dontSnipe[dontSnipePos]=snipe[sp].id;
+							break;
 						}
 					}
 					i++;
