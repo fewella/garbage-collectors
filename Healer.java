@@ -3,57 +3,66 @@ import java.util.ArrayList;
 import java.util.Queue;
 
 public class Healer {
+
+    static int[][] out;
+
     public static void run(GameController gc) {
+        boolean searchedForRangers = false;
         Queue<Unit> healers = Player.healer;
         Team team = gc.team();
         Team enemy = (team==Team.Blue) ? Team.Red:Team.Blue;
 
         for(Unit currentHealer:healers) {
-            // Unit currentHealer = units.get(i);
 
-            if(currentHealer.unitType().equals(UnitType.Healer)) { // Start actual healer code
-                MapLocation myMapLocation = null;
+            if(currentHealer.unitType().equals(UnitType.Healer)) { // Start actual healer code, should ALWAYS be true
+                MapLocation myMapLocation;
 
                 try {
-                    myMapLocation = currentHealer.location().mapLocation();
+                    myMapLocation = currentHealer.location().mapLocation(); //Test if on rocket or something
                 } catch(Exception e){
                     continue;
                 }
 
+                // Healing logic
                 int id = currentHealer.id();
                 VecUnit friends = gc.senseNearbyUnitsByTeam(myMapLocation, currentHealer.attackRange(), team);
 
                 // If can heal, search for friend with lowest health and heal
-                // TODO: Should take unit type into account at some point
-                // TODO: Should also check distance to friendly units, and not move out of healing range of them if safe
+
                 long minhealth = 9999;
                 int targetID = -1;
-                Location targetLoc = null;
+
                 if(gc.isHealReady(id)) {
                     for (int i = 0; i < friends.size(); i++) {
                         Unit friend = friends.get(i);
-                        if (friend.health() < minhealth) {
+                        if (friend.health() < minhealth && !(gc.planet() == Planet.Mars && friend.unitType() == UnitType.Worker)) {  // Don't heal workers on Mars
                             minhealth = friend.health();
                             targetID = friend.id();
-                            targetLoc = friend.location();
                         }
                     }
                     if(targetID != 1 && gc.canHeal(id, targetID)) {  // Should ALWAYS be true
                         gc.heal(id, targetID);
                     }
                 }
-                else {  // If can't heal, still set target to someone
-                    targetLoc = friends.get(0).location();
-                }
 
-                // Run away from nearest enemy, or move towards most damaged friend
-                // TODO: Should run away from largest "cluster" of enemies rather than closest
+
+                // Moving logic
+
+                if(!searchedForRangers) {
+                    ArrayList<MapLocation> targetLocs = new ArrayList<MapLocation>();
+                    for(Unit ranger : Player.ranger) {
+                        if(ranger.health() < ranger.maxHealth()) {
+                            targetLocs.add(ranger.location().mapLocation());
+                        }
+                    }
+                    out = MapAnalysis.BFS(targetLocs);
+                    searchedForRangers = true;
+                }
 
                 VecUnit notFriends = gc.senseNearbyUnitsByTeam(myMapLocation, currentHealer.visionRange(), enemy);
 
-
                 if(gc.isMoveReady(id)) { // Just move towards unhealthiest ranger
-                    Direction[] dirs = {Direction.Northwest, Direction.North, Direction.Northeast, Direction.West, Direction.East, Direction.Southwest, Direction.South, Direction.Southeast};
+                    Direction[] dirs = {Direction.Southwest, Direction.South, Direction.Southeast, Direction.West, Direction.East, Direction.Northwest, Direction.North, Direction.Northeast};
 
                     long closestEnemyDistance = 9999l;
                     MapLocation closestEnemyLoc = null;  // If this is null at the end, indicates sees no bad guys.
@@ -72,14 +81,16 @@ public class Healer {
                             gc.moveRobot(id, enemyDirOpp);
                     }
                     else {
-                        ArrayList<MapLocation> targetLocs = new ArrayList<MapLocation>();
-                        targetLocs.add(targetLoc.mapLocation());
-                        int[][] out = MapAnalysis.BFS(targetLocs);
 
                         int x = myMapLocation.getX();
                         int y = myMapLocation.getY();
 
                         int minInd = -1;
+
+                        //ArrayList<Direction> dirs = new ArrayList<Direction>();
+                        //ArrayList<Integer> dists = new ArrayList<Integer>();
+
+
                         if(y > 0 && x > 0 && y < out.length - 1 && x < out[0].length - 1) {
                             int[] dists = {out[y - 1][x - 1], out[y][x - 1], out[y + 1][x - 1], out[y - 1][x], out[y + 1][x], out[y - 1][x - 1], out[y][x - 1], out[y + 1][x - 1]};
                             int min = 99999;
