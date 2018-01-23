@@ -104,7 +104,7 @@ public class RocketLanding {
     //Earth only
     public static MapLocation retrieve(int option){
         if(/*received[option] <= used[option]*/true){
-            System.out.println("No landing locations for option " + option + ". Taking from default.");
+            //System.out.println("No landing locations for option " + option + ". Taking from default.");
             Queue<MapLocation> q, notQ;
             if(option == 0){
             	q = q0;
@@ -213,8 +213,6 @@ public class RocketLanding {
 		    if(!q.isEmpty())
 		        comps4.add(new Tuple<>(id, cap));
 	    }
-	    System.out.println(q0);
-	    System.out.println(q1);
 	    //further merging
 	    while(!comps2.isEmpty()){
 		    Tuple<Integer, Double> comp = comps2.remove();
