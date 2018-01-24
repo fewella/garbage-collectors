@@ -7,28 +7,34 @@ class Econ {
 	static Direction[] dirs = Direction.values();
 
 	//initial factory stuff
-	static boolean factoryUp = false;
-	static boolean factoryPlaced = false;
 	static int[][] initBFS;
-	static MapLocation initLoc;
+	static ArrayList<MapLocation> initLocs;
+	static ArrayList<Integer> initIds;   //factory ids
+	static Map<Integer, Integer> initAssignments;   //worker id to group
+	static int factoriesLeft;
+
+	//normal stuff
 	static int[][] karbMapBFS;
 	static ArrayList<MapLocation> dest = new ArrayList<MapLocation>();
 	static void setup() {
 		if (Player.gc.planet() == Planet.Earth) {
 			//initial factory
-			ArrayList<MapLocation> temp = new ArrayList<>();
-			initLoc = MapAnalysis.initialFactory();
-			temp.add(initLoc);
-			initBFS = MapAnalysis.BFS(temp, false);
+			initLocs = MapAnalysis.initialFactory();
+			initIds = new ArrayList<>(initLocs.size());
+			for(int i = 0; i < initLocs.size(); i++){
+				initIds.add(0);
+			}
+			factoriesLeft = initLocs.size();
+			initBFS = MapAnalysis.BFS(initLocs, false);
 		}
 	}
 
 	static void turn(GameController gc) {
 		//overall structure:
 //		loop factories
-//		    loop workers
-//              initialFactory OR
-//              normalCode
+//		loop workers
+//          initialFactory OR
+//          normalCode
 		long round = Player.gc.round();
 		long karb = gc.karbonite();    //NOTE: global update after every action that affects it
 		//Earth strategy:
@@ -38,12 +44,16 @@ class Econ {
 		int replicate = 0;
 		HashSet<Unit> stayFactory = new HashSet<>(); //these units will not go out to look for karbonite/make new factories
 		//FACTORIES
+		ArrayList<Integer> initCpy = (ArrayList<Integer>)initIds.clone();
 		for (Unit u : Player.factory) {
-			//temporary quickfix - remove later
-			if(!factoryUp) {
+			if(initIds.contains(u.id())) {
+				initCpy.remove(Integer.valueOf(u.id()));
 				if (u.structureIsBuilt() == 1) {
-					factoryUp = true;
-					System.out.println("round " + round + ": Built initial factory!");
+					int group = initIds.indexOf(u.id());
+					initIds.set(group, 0);
+					while(initAssignments.containsValue(group))
+						initAssignments.values().removeAll(Collections.singleton(group));
+					System.out.println("round " + round + ": Built group #" + group + "'s initial factory!");
 				}
 			}
 			if( round > 500 && Player.rocket.size()  == 0 ) {
@@ -81,19 +91,30 @@ class Econ {
 			for (int k = 0; k < 8; k++)
 				if (gc.canUnload(u.id(), dirs[k])) gc.unload(u.id(), dirs[k]);
 		}
+		for(int id : initCpy){
+			if(id == 0)
+				continue;
+			int group = initIds.indexOf(id);
+			System.out.println("round " + round + ": Construction of group #" + group + "'s factory failed.");
+			initIds.set(group, 0);
+			while(initAssignments.containsValue(group))
+				initAssignments.values().removeAll(Collections.singleton(group));
+		}
 
 		//WORKERS
 		for (Unit u : Player.worker) {
 			if (!u.location().isOnMap()) continue;
 			MapLocation mapLoc = u.location().mapLocation();
 			boolean doneAction = false;
-			if (!factoryUp) {
+			if (initAssignments.containsKey(u.id())) {
 				//initial factory strategy:
 				//1. if far, move by matrix
 				//2. else: blueprint/build
 				//3. if possible, replicate/collect karb
+				int group = initAssignments.get(u.id());
+				MapLocation initLoc = initLocs.get(group);
 				Collections.shuffle(Arrays.asList(dirs));    //to prevent workers getting stuck
-				if (mapLoc.distanceSquaredTo(initLoc) > 2) {    //out of reach
+				if (!mapLoc.isAdjacentTo(initLoc)) {    //out of reach
 					//1. move
 					if (gc.isMoveReady(u.id())) {
 						Direction minD = Direction.Center;
@@ -119,11 +140,6 @@ class Econ {
 						if (gc.canBuild(u.id(), f.id())) {
 							gc.build(u.id(), f.id());
 							doneAction = true;
-							//for some reason doesn't work - fix later
-							if(f.structureIsBuilt() == 1) {
-								factoryUp = true;
-								System.out.println("round " + round + ": Built initial factory!");
-							}
 						}
 					} catch (RuntimeException e){
 						//blueprint
@@ -131,14 +147,15 @@ class Econ {
 							gc.blueprint(u.id(), UnitType.Factory, mapLoc.directionTo(initLoc));
 							karb = gc.karbonite();
 							doneAction = true;
-							factoryPlaced = true;
+							Unit f = gc.senseUnitAtLocation(initLoc);
+							initIds.set(group, f.id());
+							factoriesLeft--;
 							System.out.println("round " + round + ": Placed initial factory");
 						}
 					}
 				}
 				//3. replicate/karb
-				if(u.abilityHeat() < 10 && /*round%50==4 && */(karb > bc.bcUnitTypeBlueprintCost(UnitType.Factory)+bc.bcUnitTypeReplicateCost(UnitType.Worker) || (factoryPlaced && karb > bc.bcUnitTypeReplicateCost(UnitType.Worker)))){
-					//NOTE: contains an artificial ^^^ cap; remove later
+				if(u.abilityHeat() < 10 && karb > factoriesLeft*bc.bcUnitTypeBlueprintCost(UnitType.Factory)+bc.bcUnitTypeReplicateCost(UnitType.Worker)){
 					//improve later
 					for (int k = 0; k < 8; k++) {
 						if (gc.canReplicate(u.id(), dirs[k])) {
