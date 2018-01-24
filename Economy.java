@@ -147,8 +147,13 @@ class Econ {
 							gc.blueprint(u.id(), UnitType.Factory, mapLoc.directionTo(initLoc));
 							karb = gc.karbonite();
 							doneAction = true;
-							Unit f = gc.senseUnitAtLocation(initLoc);
-							initIds.set(group, f.id());
+							try{
+								Unit f = gc.senseUnitAtLocation(initLoc);
+								initIds.set(group, f.id());
+							}
+								catch(Exception e2){
+								System.out.println("can not find unit");
+							}
 							factoriesLeft--;
 							System.out.println("round " + round + ": Placed initial factory");
 						}
@@ -160,8 +165,13 @@ class Econ {
 					for (int k = 0; k < 8; k++) {
 						if (gc.canReplicate(u.id(), dirs[k])) {
 							gc.replicate(u.id(), dirs[k]);
-							Unit u2 = gc.senseUnitAtLocation(mapLoc.add(dirs[k]));
-							initAssignments.put(u2.id(), group);
+							try {
+								Unit u2 = gc.senseUnitAtLocation(mapLoc.add(dirs[k]));
+								initAssignments.put(u2.id(), group);
+							}
+							catch(Exception e){
+								System.out.println("can not find unit");
+							}
 							karb = gc.karbonite();
 							break;
 						}
