@@ -160,6 +160,8 @@ class Econ {
 					for (int k = 0; k < 8; k++) {
 						if (gc.canReplicate(u.id(), dirs[k])) {
 							gc.replicate(u.id(), dirs[k]);
+							Unit u2 = gc.senseUnitAtLocation(mapLoc.add(dirs[k]));
+							initAssignments.put(u2.id(), group);
 							karb = gc.karbonite();
 							break;
 						}
