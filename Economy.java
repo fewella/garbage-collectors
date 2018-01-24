@@ -38,7 +38,7 @@ class Econ {
 //          normalCode
 		long round = Player.gc.round();
 		long karb = gc.karbonite();    //NOTE: global update after every action that affects it
-		System.out.println(karb);
+		//System.out.println(karb);
 		//Earth strategy:
 		//1. Initial factory
 		//2. Normal Code
@@ -55,7 +55,7 @@ class Econ {
 					initIds.set(group, 0);
 					while(initAssignments.containsValue(group))
 						initAssignments.values().removeAll(Collections.singleton(group));
-					System.out.println("round " + round + ": Built group #" + group + "'s initial factory!");
+					//System.out.println("round " + round + ": Built group #" + group + "'s initial factory!");
 				}
 			}
 			else {
@@ -92,7 +92,7 @@ class Econ {
 					if (gc.canUnload(u.id(), dirs[k])) gc.unload(u.id(), dirs[k]);
 			}
 			else {
-				System.out.println("Shutdown");
+				//System.out.println("Shutdown");
 			}
 		}
 		for( Unit u: Player.rocket) {
@@ -277,7 +277,7 @@ class Econ {
 						if (min == 0 ) { //0 or 1??
 							if(gc.canHarvest(u.id(), dirs[dire])) {
 								if (round > 1 && karb < 300) {
-									System.out.println("Harvesting karbonite");
+									//System.out.println("Harvesting karbonite");
 									gc.harvest(u.id(), dirs[dire]);
 									karb = gc.karbonite();
 								}
@@ -309,7 +309,7 @@ class Econ {
 							else {
 								if(gc.canHarvest(u.id(), dirs[dire2])) {
 									if (round > 1 && karb < 300) {
-										System.out.println("Harvesting karbonite");
+										//System.out.println("Harvesting karbonite");
 										gc.harvest(u.id(), dirs[dire]);
 										karb = gc.karbonite();
 									}
