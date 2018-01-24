@@ -144,9 +144,9 @@ class MapAnalysis {
 				    	MapLocation og = nq.remove();
 				    	for(int j = 1; j < Player.dirs.length; j++){
 						    MapLocation neighborLoc = og.add(Player.dirs[j]);
-						    if(ns[neighborLoc.getY()][neighborLoc.getX()] == 1)
-						        continue;
 						    if(neighborLoc.getX() < 0 || neighborLoc.getY() < 0 || neighborLoc.getX() >= w || neighborLoc.getY() >= h)
+							    continue;
+						    if(ns[neighborLoc.getY()][neighborLoc.getX()] == 1)
 							    continue;
 						    if(pass[neighborLoc.getY()][neighborLoc.getX()] == 0)
 							    continue;
