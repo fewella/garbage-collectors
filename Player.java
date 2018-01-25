@@ -2,6 +2,9 @@ import MapTools.Karbonite;
 import MapTools.Passable;
 import MapTools.UnionFind;
 import bc.*;
+
+import java.awt.*;
+import java.text.DecimalFormat;
 import java.util.*;
 
 public class Player {
@@ -11,11 +14,15 @@ public class Player {
     static GameController gc;
     static PlanetMap map, mapEarth, mapMars;
     static Queue<Unit> worker, knight, ranger, healer, mage, factory, rocket;
+	static long time1, time2;
+	static long tWorker, tCombot, tRocket, tHealer;
+	static DecimalFormat f;
 
     public static void main(String[] args) {
         try {
             //connect to the manager, starting the game
             gc = new GameController();
+	        time1 = System.nanoTime();
             map = gc.startingMap(gc.planet());
             mapEarth = gc.startingMap(Planet.Earth);
             mapMars = gc.startingMap(Planet.Mars);
@@ -37,6 +44,13 @@ public class Player {
             gc.queueResearch(UnitType.Worker); //825
             
             ComBot.init(gc);
+	        time2 = System.nanoTime();
+	        f = new DecimalFormat("##.##");
+	        System.out.println("╓───────────────");
+            System.out.println("║ TIME REPORT:");
+            System.out.println("║ Round: " + gc.round());
+            System.out.println("║ Setup: " + f.format((time2-time1)/1000000.0) + "ms");
+	        System.out.println("╚═══════════════");
         }
         catch(Exception e){
             System.out.println("Exception during setup");
@@ -76,13 +90,38 @@ public class Player {
 	            }
 	            //I'll uncomment when I actually get this part to work :)
 	            //MapAnalysis.turn();
+	            time1 = System.nanoTime();
 	            if (Player.gc.planet() == Planet.Earth) {
 		            Econ.turn(gc);
 	            } else
 		            MarsWorker.turn(gc);
+	            time2 = System.nanoTime();
+	            tWorker += (time2-time1);
+	            time1 = time2;
 	            Rocket.turn(gc);
+	            time2 = System.nanoTime();
+	            tRocket += (time2-time1);
+	            time1 = time2;
 	            ComBot.turn();
+	            time2 = System.nanoTime();
+	            tCombot += (time2-time1);
+	            time1 = time2;
 	            Healer.run(gc);
+	            time2 = System.nanoTime();
+	            tHealer += (time2-time1);
+
+	            if(gc.round() % 250 == 0) {
+		            System.out.println("╓───────────────");
+		            System.out.println("║ TIME REPORT:");
+		            System.out.println("║ Round: " + gc.round());
+		            System.out.println("║ Combot: " + f.format(tCombot/1000000.0) + "ms");
+		            System.out.println("║ Econ+wMars: " + f.format(tWorker/1000000.0) + "ms");
+		            System.out.println("║ Rocket: " + f.format(tRocket/1000000.0) + "ms");
+		            System.out.println("║ Healer: " + f.format(tHealer/1000000.0) + "ms");
+		            System.out.println("║ Remaining: " + gc.getTimeLeftMs() + "ms");
+		            System.out.println("╚═══════════════");
+	            }
+
 	            gc.nextTurn();
             }
             catch(Exception e){
