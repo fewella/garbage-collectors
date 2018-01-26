@@ -8,9 +8,22 @@ public class Healer {
 
     public static void run(GameController gc) {
         boolean searchedForRangers = false;
+        boolean fly = false;
         Queue<Unit> healers = Player.healer;
+        Queue<Unit> rockets = Player.rocket;
+        ArrayList<MapLocation> rocketLocs = new ArrayList<MapLocation>();
         Team team = gc.team();
         Team enemy = (team==Team.Blue) ? Team.Red:Team.Blue;
+
+        for(Unit r : rockets) {
+            if((r.health() > (4 * r.maxHealth() / 5) || r.structureIsBuilt() != 0) && r.structureGarrison().size() < r.structureMaxCapacity() && r.rocketIsUsed() == 0) {
+                rocketLocs.add(r.location().mapLocation());
+                fly = true;
+            }
+        }
+
+        if(fly)
+            out = MapAnalysis.BFS(rocketLocs);
 
         for(Unit currentHealer:healers) {
 
@@ -48,7 +61,7 @@ public class Healer {
 
                 // Moving logic
 
-                if(!searchedForRangers) {
+                if(!(searchedForRangers || fly)) {
                     ArrayList<MapLocation> targetLocs = new ArrayList<MapLocation>();
                     for(Unit ranger : Player.ranger) {
                         if(ranger.health() < ranger.maxHealth()) {
