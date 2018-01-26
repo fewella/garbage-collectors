@@ -8,22 +8,23 @@ class Snipe {
 	public Snipe(int health, MapLocation loc1, int id1) {
 		loc = loc1;
 		shots = (health + 29) / 30;
-		id=id1;
+		id = id1;
 	}
 
 	void set(int health, MapLocation loc1, int id1) {
 		loc = loc1;
 		shots = (health + 29) / 30;
-		id=id1;
+		id = id1;
 	}
+
 	int id;
 	int shots;
 	MapLocation loc;
 }
 
 class ComBot {
-	
-	static final int RANGERRANGE=50;
+
+	static final int RANGERRANGE = 50;
 	static Direction[] dirs = Direction.values();
 	static Random rng = new Random(7);
 	static GameController gc;
@@ -42,19 +43,58 @@ class ComBot {
 	static Snipe[] snipe = new Snipe[20];
 	static int[][] bfs;
 	static Team ot;
-	static int[] dontSnipe=new int[20];
-	static int dontSnipePos=-1;
+	static int[] dontSnipe = new int[20];
+	static int dontSnipePos = -1;
+	static int[] hitterCanHit = new int[200];
+	static short[][][][] d2m = new short[50][50][50][50];
+	// [x][y][x][y], second one always moves
+
 	/*
 	 * shooting priorities: 1. Things that can hit you 2. Ties broken by health
 	 * 3. Ties broken by damage 4. Ties broken by closer
 	 */
+
+	static void makeMoveLookup() {
+		int xm = (int) Player.map.getWidth();
+		int ym = (int) Player.map.getHeight();
+		int[][] mat = MapTools.Passable.matrix(gc.planet());
+		int tooY=ym-1;
+		int tooX=xm-1;
+		for (int x1 = 0; x1 < xm; x1++) {
+			for (int y1 = 0; y1 < ym; y1++) {
+				if (mat[y1][x1] != 0) {
+					for (int x2 = 0; x2 < xm; x2++) {
+						for (int y2 = 0; y2 < ym; y2++) {
+							if (mat[y2][x2]!=0) { 
+								
+								int dx=x2-x1;
+								int dy=y2-y1;
+								int d=dx*dx+dy*dy;
+								if (y2!=tooY && mat[y2+1][x2]!=0) d=Math.min(d, (dx)*(dx)+(dy+1)*(dy+1));
+								if (y2!=tooY && x2!=tooX && mat[y2+1][x2+1]!=0) d=Math.min(d, (dx+1)*(dx+1)+(dy+1)*(dy+1));
+								if (y2!=tooY && x2!=0 && mat[y2+1][x2-1]!=0) d=Math.min(d, (dx-1)*(dx-1)+(dy+1)*(dy+1));
+								if (x2!=tooX && mat[y2][x2+1]!=0) d=Math.min(d, (dx+1)*(dx+1)+(dy)*(dy));
+								if (x2!=0 && mat[y2][x2-1]!=0) d=Math.min(d, (dx-1)*(dx-1)+(dy)*(dy));
+								if (y2!=0 && mat[y2-1][x2]!=0) d=Math.min(d, (dx)*(dx)+(dy-1)*(dy-1));
+								if (y2!=0 && x2!=tooX && mat[y2-1][x2+1]!=0) d=Math.min(d, (dx+1)*(dx+1)+(dy-1)*(dy-1));
+								if (y2!=0 && x2!=0 && mat[y2-1][x2-1]!=0) d=Math.min(d, (dx-1)*(dx-1)+(dy-1)*(dy-1));
+								d2m[x1][y1][x2][y2]=(short)d;
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
 	static void init(GameController gameC) {
 		gc = gameC;
 		ot = gc.team() == Team.Red ? Team.Blue : Team.Red;
 		for (int i = 0; i < snipe.length; i++) {
-			snipe[i] = new Snipe(10, null,-1);
+			snipe[i] = new Snipe(10, null, -1);
 		}
 		VecUnit vu = Player.map.getInitial_units();
+		makeMoveLookup();
 		int p = 0;
 		for (long i = vu.size() - 1; i >= 0; i--) {
 			Unit u = vu.get(i);
@@ -63,54 +103,57 @@ class ComBot {
 				fight[p++] = u.location().mapLocation();
 			}
 		}
-		for (int i=p; i<fights; i++) {
-			fightR[i]=200;
-			fight[i]=fight[p];
+		for (int i = p; i < fights; i++) {
+			fightR[i] = 200;
+			fight[i] = fight[p];
 		}
+
 	}
 
 	static void snipe() {
 		for (int i = 0; i < enemies; i++) {
 			if (!robot(enemy[i]) || enemy[i].movementHeat() == 0) {
-				boolean v=true;
-				for (int k=0; k<dontSnipe.length; k++) {
-					if (dontSnipe[k]==enemy[i].id()) {
-						v=false;
+				boolean v = true;
+				for (int k = 0; k < dontSnipe.length; k++) {
+					if (dontSnipe[k] == enemy[i].id()) {
+						v = false;
 						break;
 					}
 				}
 				if (v) {
 					snipePos++;
 					snipePos %= snipe.length;
-					snipe[snipePos].set((int) enemy[i].maxHealth(), enemy[i].location().mapLocation(),enemy[i].id());
-					//System.out.println("added snipe");
+					snipe[snipePos].set((int) enemy[i].maxHealth(), enemy[i].location().mapLocation(), enemy[i].id());
+					// System.out.println("added snipe");
 				}
 			}
 		}
-		//if (gc.round()%25==0) System.out.println(gc.round()+" "+gc.researchInfo().getLevel(UnitType.Ranger));
+		// if (gc.round()%25==0) System.out.println(gc.round()+"
+		// "+gc.researchInfo().getLevel(UnitType.Ranger));
 		if (gc.researchInfo().getLevel(UnitType.Ranger) >= 3 && snipePos != -1) {
 			int ids[] = new int[12];
 			int i = 0;
-			//System.out.print("\nconsidering sniping");
+			// System.out.print("\nconsidering sniping");
 			for (int sp = snipePos; sp != (snipePos + 1) % snipe.length; sp = (sp + snipe.length - 1) % snipe.length) {
-				//System.out.print(sp+" ");
+				// System.out.print(sp+" ");
 				if (snipe[sp].loc == null)
 					continue;
 				int found = 0;
 				while (i < rangers) {
-					//System.out.println("posSniper");
-					int bfsd=bfs[myR[i].location().mapLocation().getY()][myR[i].location().mapLocation().getX()];
-					if (myR[i].abilityHeat() < 10 &&  (bfsd>= 9 || bfsd==-1)  && gc.unit(myR[i].id()).attackHeat()==0) {
-						//System.out.println("sniper");
+					// System.out.println("posSniper");
+					int bfsd = bfs[myR[i].location().mapLocation().getY()][myR[i].location().mapLocation().getX()];
+					if (myR[i].abilityHeat() < 10 && (bfsd >= 9 || bfsd == -1)
+							&& gc.unit(myR[i].id()).attackHeat() == 0) {
+						// System.out.println("sniper");
 						ids[found++] = myR[i].id();
 						if (found == snipe[sp].shots) {
 							for (int k = 0; k < found; k++) {
 								gc.beginSnipe(ids[k], snipe[sp].loc);
-								//System.out.println("sniping");
+								// System.out.println("sniping");
 							}
 							snipe[sp].loc = null;
-							dontSnipePos=(dontSnipePos+1)%dontSnipe.length;
-							dontSnipe[dontSnipePos]=snipe[sp].id;
+							dontSnipePos = (dontSnipePos + 1) % dontSnipe.length;
+							dontSnipe[dontSnipePos] = snipe[sp].id;
 							break;
 						}
 					}
@@ -161,7 +204,7 @@ class ComBot {
 	static void shootPeople() {
 		for (int i = 0; i < rangers; i++) {
 			if (gc.isAttackReady(myR[i].id())) {
-				MapLocation loc=gc.unit(myR[i].id()).location().mapLocation();
+				MapLocation loc = gc.unit(myR[i].id()).location().mapLocation();
 				int minPri = 9999;
 				int shoot = -1;
 				for (int k = 0; k < enemies; k++) {
@@ -224,7 +267,8 @@ class ComBot {
 			if (mine.get(i).location().isOnMap()) {
 				Unit u = mine.get(i);
 				MapLocation m = u.location().mapLocation();
-
+				int x=m.getX();
+				int y=m.getY();
 				if (u.unitType() == UnitType.Rocket
 						&& (u.health() > (4 * u.maxHealth() / 5) || u.structureIsBuilt() != 0)
 						&& u.structureGarrison().size() < u.structureMaxCapacity() && u.rocketIsUsed() == 0) {
@@ -234,7 +278,7 @@ class ComBot {
 
 				for (int k = 0; k < enemies; k++) {
 					if (robot(enemy[k]) && enemy[k].damage() > 0
-							&& d2m(m, enemy[k].location().mapLocation()) <= enemy[k].attackRange()) {
+							&& d2m[x][y][enemy[k].location().mapLocation().getX()][enemy[k].location().mapLocation().getY()] <= enemy[k].attackRange()) {
 						canHit[k]++;
 					}
 				}
@@ -253,15 +297,17 @@ class ComBot {
 			if (healths[i] > 0) {
 				targs.add(enemy[i].location().mapLocation());
 				if (robot(enemy[i]) && enemy[i].damage() > 0 && canHit[i] < 2) {
+					hitterCanHit[hitters] = canHit[i];
 					hitter[hitters++] = enemy[i];
+
 				}
 			}
 		}
-		int[][] pRock=null;
+		int[][] pRock = null;
 		if (rocketspace != 0) {
-			//System.out.println("in");
+			// System.out.println("in");
 			pRock = MapAnalysis.BFS(rocks);
-			//System.out.println("out");
+			// System.out.println("out");
 			int[] low = new int[rocketspace];
 			int p = 0;
 			int ip = 0;
@@ -304,23 +350,28 @@ class ComBot {
 				int best = -1;
 				int val = 99999;
 				MapLocation myloc = myR[i].location().mapLocation();
+				int x=myloc.getX();
+				int y=myloc.getY();
 				for (int d = 0; d < 9; d++) {
 					if (gc.canMove(myR[i].id(), dirs[d])) {
 						MapLocation nloc = myloc.add(dirs[d]);
+						int nx=nloc.getX();
+						int ny=nloc.getY();
 						int v = 0;
 						for (int k = 0; k < hitters; k++) {
-							if (canHit[k] == 0 && d2m2(nloc, hitter[k].location().mapLocation()) <= hitter[k].attackRange()
-									
-									|| d2m(myloc, hitter[k].location().mapLocation()) <= hitter[k].attackRange()) {
+							MapLocation mp=hitter[k].location().mapLocation();
+							if ((hitterCanHit[k] == 0
+									|| d2m[x][y][mp.getX()][mp.getY()] <= hitter[k].attackRange())
+									&& d2m[nx][ny][mp.getX()][mp.getY()] <= hitter[k].attackRange()) {
 								v++;
 							}
 						}
 						v *= 1000;
 						if (gc.senseNearbyUnitsByTeam(nloc, RANGERRANGE, ot).size() > 0) {
-							v-=1100;
+							v -= 1100;
 						}
-						
-						if (gc.unit(myR[i].id()).attackHeat()==0) {
+
+						if (gc.unit(myR[i].id()).attackHeat() == 0) {
 							if (toRock[i]) {
 								v += pRock[myR[i].location().mapLocation().getY()][myR[i].location().mapLocation()
 										.getX()];
