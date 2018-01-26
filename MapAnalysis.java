@@ -4,15 +4,10 @@ import MapTools.RocketLanding;
 import bc.*;
 
 import java.util.*;
-import Utils.Tuple;
 import MapTools.*;
 
 class MapAnalysis {
 	static final int MAX_D = 20;
-
-    //Earth only
-    static MapLocation baseLocation;
-    static PriorityQueue<Tuple<MapLocation, Integer>> factoryQueue;
 
     //private variables
     private static int[][] blankBFS;
@@ -44,11 +39,13 @@ class MapAnalysis {
 	    }
         //weed out workers without reach to enemy
 	    int[][] enemyBFS = BFS(enemies, false);
+	    ArrayList<Integer> toRemove = new ArrayList<>();
 		for(int key : chamberMap.keySet()){
 	    	MapLocation loc = chamberMap.get(key).get(0).location().mapLocation();
 			if(enemyBFS[loc.getY()][loc.getX()] == -1)
-				chamberMap.remove(key);
+				toRemove.add(key);
 		}
+	    chamberMap.keySet().removeAll(toRemove);
 	    //divide workers that are far
 	    ArrayList<ArrayList<Unit>> sep = new ArrayList<>(3);
 	    Map<Unit, int[][]> cache = new HashMap<>(3);
@@ -128,8 +125,10 @@ class MapAnalysis {
 			    MapLocation bestLoc = workerLoc;
 			    int max = -999999999;
 			    Econ.initAssignments.put(group.get(0).id(), out.size());
-			    for(int i = 1; i < Player.dirs.length; i++){
-			    	MapLocation factLoc = workerLoc.add(Player.dirs[i]);
+			    for(Direction d : Player.dirs){
+				    if(d == Direction.Center)
+					    continue;
+			    	MapLocation factLoc = workerLoc.add(d);
 				    if(factLoc.getX() < 0 || factLoc.getY() < 0 || factLoc.getX() >= w || factLoc.getY() >= h)
 					    continue;
 			    	if(pass[factLoc.getY()][factLoc.getX()] == 0)
@@ -142,8 +141,10 @@ class MapAnalysis {
 				    ns[workerLoc.getY()][workerLoc.getX()] = 1;
 				    while(!nq.isEmpty()){
 				    	MapLocation og = nq.remove();
-				    	for(int j = 1; j < Player.dirs.length; j++){
-						    MapLocation neighborLoc = og.add(Player.dirs[j]);
+				    	for(Direction d2 : Player.dirs){
+				    		if(d2 == Direction.Center)
+				    			continue;
+						    MapLocation neighborLoc = og.add(d2);
 						    if(neighborLoc.getX() < 0 || neighborLoc.getY() < 0 || neighborLoc.getX() >= w || neighborLoc.getY() >= h)
 							    continue;
 						    if(ns[neighborLoc.getY()][neighborLoc.getX()] == 1)
