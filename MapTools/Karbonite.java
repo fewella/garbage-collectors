@@ -75,7 +75,7 @@ public class Karbonite {
             karboniteTotalArray.add(cumulative);
             karboniteRoundArray.add(1);
         }
-        for(int round = 0; round < 1000; round++){
+        for(int round = 1; round <= 1000; round++){
             if(!asteroids.hasAsteroid(round))
                 continue;
             AsteroidStrike asteroid = asteroids.asteroid(round);
@@ -89,12 +89,12 @@ public class Karbonite {
     }
     private static Tuple<int[][], Integer> karboniteMat(Planet p){
         //same outputs as PlanetMap.initialKarboniteAt
-        PlanetMap pm = gc.startingMap(Planet.Earth);
+        PlanetMap pm = gc.startingMap(p);
         int[][] mat = new int[(int)pm.getHeight()][(int)pm.getWidth()];
         int total = 0;
         for(int y = 0; y < pm.getHeight(); y++){
             for(int x = 0; x < pm.getWidth(); x++){
-                long karb = pm.initialKarboniteAt(new MapLocation(pm.getPlanet(), x, y));
+                long karb = pm.initialKarboniteAt(new MapLocation(p, x, y));
                 mat[y][x] = (short)karb;
                 total += karb;
             }

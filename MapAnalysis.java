@@ -8,7 +8,7 @@ import Utils.Tuple;
 import MapTools.*;
 
 class MapAnalysis {
-	static final int MAX_D = 10;
+	static final int MAX_D = 20;
 
     //Earth only
     static MapLocation baseLocation;
