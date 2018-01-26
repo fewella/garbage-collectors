@@ -29,14 +29,14 @@ public class Healer {
 
                 // If can heal, search for friend with lowest health and heal
 
-                long minhealth = 9999;
+                double minhealth = 9999;
                 int targetID = -1;
 
                 if(gc.isHealReady(id)) {
                     for (int i = 0; i < friends.size(); i++) {
                         Unit friend = friends.get(i);
-                        if (friend.health() < minhealth && !(gc.planet() == Planet.Mars && friend.unitType() == UnitType.Worker)) {  // Don't heal workers on Mars
-                            minhealth = friend.health();
+                        if (friend.health()/friend.maxHealth() < minhealth && !(gc.planet() == Planet.Mars && friend.unitType() == UnitType.Worker)) {  // Don't heal workers on Mars
+                            minhealth = friend.health()/friend.maxHealth();
                             targetID = friend.id();
                         }
                     }
