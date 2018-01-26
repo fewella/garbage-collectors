@@ -47,12 +47,12 @@ public class Player {
             
 	        time2 = System.nanoTime();
 	        f = new DecimalFormat("##.##");
-	        System.out.println("â•“â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€");
-            System.out.println("â•‘ TIME REPORT:");
-            System.out.println("â•‘ Round: " + gc.round());
-            System.out.println("â•‘ Setup: " + f.format((time2-time1)/1000000.0) + "ms");
-	        System.out.println("â•šâ•�â•�â•�â•�â•�â•�â•�â•�â•�â•�â•�â•�â•�â•�â•�");
-	        
+	        System.out.println("--------------");
+            System.out.println("| TIME REPORT:");
+            System.out.println("| Round: " + gc.round());
+            System.out.println("| Setup: " + f.format((time2-time1)/1000000.0) + "ms");
+	        System.out.println("--------------");
+	        tWorker = tCombot = tRocket = tHealer = 0;
         }
         catch(Exception e){
             System.out.println("Exception during setup");
@@ -113,15 +113,15 @@ public class Player {
 	            tHealer += (time2-time1);
 
 	            if(gc.round() % 250 == 0) {
-		            System.out.println("â•“â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€");
-		            System.out.println("â•‘ TIME REPORT:");
-		            System.out.println("â•‘ Round: " + gc.round());
-		            System.out.println("â•‘ Combot: " + f.format(tCombot/1000000.0) + "ms");
-		            System.out.println("â•‘ Econ+wMars: " + f.format(tWorker/1000000.0) + "ms");
-		            System.out.println("â•‘ Rocket: " + f.format(tRocket/1000000.0) + "ms");
-		            System.out.println("â•‘ Healer: " + f.format(tHealer/1000000.0) + "ms");
-		            System.out.println("â•‘ Remaining: " + gc.getTimeLeftMs() + "ms");
-		            System.out.println("â•šâ•�â•�â•�â•�â•�â•�â•�â•�â•�â•�â•�â•�â•�â•�â•�");
+		            System.out.println("--------------");
+		            System.out.println("| TIME REPORT:");
+		            System.out.println("| Round: " + gc.round());
+		            System.out.println("| Combot: " + f.format(tCombot/1000000.0) + "ms");
+		            System.out.println("| Econ+wMars: " + f.format(tWorker/1000000.0) + "ms");
+		            System.out.println("| Rocket: " + f.format(tRocket/1000000.0) + "ms");
+		            System.out.println("| Healer: " + f.format(tHealer/1000000.0) + "ms");
+		            System.out.println("| Remaining: " + gc.getTimeLeftMs() + "ms");
+		            System.out.println("--------------");
 	            }
 
 	            gc.nextTurn();
