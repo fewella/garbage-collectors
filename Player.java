@@ -44,15 +44,15 @@ public class Player {
             gc.queueResearch(UnitType.Worker); //825
             
             ComBot.init(gc);
-            /*
+            
 	        time2 = System.nanoTime();
 	        f = new DecimalFormat("##.##");
 	        System.out.println("â•“â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€");
             System.out.println("â•‘ TIME REPORT:");
             System.out.println("â•‘ Round: " + gc.round());
             System.out.println("â•‘ Setup: " + f.format((time2-time1)/1000000.0) + "ms");
-	        //System.out.println("â•šâ•�â•�â•�â•�â•�â•�â•�â•�â•�â•�â•�â•�â•�â•�â•�");
-	         * */
+	        System.out.println("â•šâ•�â•�â•�â•�â•�â•�â•�â•�â•�â•�â•�â•�â•�â•�â•�");
+	        
         }
         catch(Exception e){
             System.out.println("Exception during setup");

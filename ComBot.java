@@ -374,11 +374,10 @@ class ComBot {
 
 						if (gc.unit(myR[i].id()).attackHeat() == 0) {
 							if (toRock[i]) {
-								v += pRock[myR[i].location().mapLocation().getY()][myR[i].location().mapLocation()
-										.getX()];
-								System.out.println("Headed to rocket");
+								v += pRock[ny][nx];
+								//System.out.println("Headed to rocket");
 							} else {
-								v += bfs[nloc.getY()][nloc.getX()];
+								v += bfs[ny][nx];
 							}
 						} else {
 							int mind = 999;

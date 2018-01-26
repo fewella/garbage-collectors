@@ -264,7 +264,8 @@ class Econ {
 					}
 				}
 				VecUnit nearRan = gc.senseNearbyUnitsByType(mapLoc, 36, UnitType.Ranger);
-				if ((nearRan.size() > 2 || round > 600) && round > 250 && madeRocket < 3 && Player.rocket.size() < 3 && !doneAction && (nearFac.size() == 0 || round >500) ) {
+				//if ((nearRan.size() > 2 || round > 600) && round > 250 && madeRocket < 3 && Player.rocket.size() < 3 && !doneAction && (nearFac.size() == 0 || round >500) ) {
+				if (round > 250 && madeRocket < 3 && Player.rocket.size() < 3 && !doneAction && (nearFac.size() == 0 || round >500) ) {
 					//move from factories
 					//System.out.println("Trying to make rocket");
 					for (int k = 0; k < 8; k++) {
