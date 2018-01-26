@@ -197,6 +197,7 @@ class ComBot {
 		}
 		if (canHit[e] == 0)
 			pri += 1000;
+		if (enemy[e].unitType()==UnitType.Healer) pri-=1010;
 		pri += d;
 		return pri;
 	}
