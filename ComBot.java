@@ -99,8 +99,8 @@ class ComBot {
 				int found = 0;
 				while (i < rangers) {
 					//System.out.println("posSniper");
-					if (myR[i].abilityHeat() < 10 && bfs[myR[i].location().mapLocation().getY()][myR[i].location()
-							.mapLocation().getX()] >= 9  && gc.unit(myR[i].id()).attackHeat()==0) {
+					int bfsd=bfs[myR[i].location().mapLocation().getY()][myR[i].location().mapLocation().getX()];
+					if (myR[i].abilityHeat() < 10 &&  (bfsd>= 9 || bfsd==-1)  && gc.unit(myR[i].id()).attackHeat()==0) {
 						//System.out.println("sniper");
 						ids[found++] = myR[i].id();
 						if (found == snipe[sp].shots) {
@@ -324,6 +324,7 @@ class ComBot {
 							if (toRock[i]) {
 								v += pRock[myR[i].location().mapLocation().getY()][myR[i].location().mapLocation()
 										.getX()];
+								System.out.println("Headed to rocket");
 							} else {
 								v += bfs[nloc.getY()][nloc.getX()];
 							}
