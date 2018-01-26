@@ -162,7 +162,7 @@ class MapAnalysis {
 				    }
 				    score += 300*nsize;
 				    score -= 100*enemyBFS[factLoc.getY()][factLoc.getX()];
-				    if(score < max){
+				    if(score > max){
 				    	max = score;
 				    	bestLoc = factLoc;
 				    }
