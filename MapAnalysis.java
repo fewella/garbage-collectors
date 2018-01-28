@@ -51,7 +51,8 @@ class MapAnalysis {
 				    e.add(loc);
 			    occ[loc.getY()][loc.getX()] = 1;
 		    }
-	    	Rollout.setup(Player.gc, c4, Pathing.BFS(e, false), Pathing.BFS(f, false), occ, groups, BFS);
+		    Econ.enemyBFS = Pathing.BFS(e, false);
+	    	Rollout.setup(Player.gc, c4, Econ.enemyBFS, Pathing.BFS(f, false), occ, groups, BFS);
 		    Econ.karbBFS(Player.gc.round());
 	    }
     }

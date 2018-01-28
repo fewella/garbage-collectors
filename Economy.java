@@ -10,8 +10,8 @@ class Econ {
 	
 	static boolean allreachableKarb = false;
 
-	//initial factory stuff
 	static int totalRocket = 0;
+	public static int[][] enemyBFS;
 
 	//normal stuff
 	public static int[][] karbMapBFS;
@@ -89,9 +89,14 @@ class Econ {
 						gc.produceRobot(u.id(), UnitType.Healer);
 				}
 				else{
-					if (gc.canProduceRobot(u.id(), UnitType.Ranger))
-						gc.produceRobot(u.id(), UnitType.Ranger);
-						//gc.produceRobot(u.id(), UnitType.Knight);
+					if(4*enemyBFS[mapLoc.getY()][mapLoc.getX()] + gc.round() < 150){
+						if (gc.canProduceRobot(u.id(), UnitType.Ranger))
+							gc.produceRobot(u.id(), UnitType.Knight);
+					}
+					else {
+						if (gc.canProduceRobot(u.id(), UnitType.Ranger))
+							gc.produceRobot(u.id(), UnitType.Ranger);
+					}
 				}
 				karb = gc.karbonite();
 				for (int k = 0; k < 8; k++)
@@ -270,7 +275,7 @@ class Econ {
 				if( unreachable >= dest.size() ) {
 					allreachableKarb = true;
 				}
-				if (Player.worker.size() < 4 || Rollout.purchQ.isEmpty() && Player.worker.size() < 10 && Player.worker.size() < Player.ranger.size() && Player.worker.size() < Player.healer.size()) {
+				if (Rollout.factLocs.isEmpty() && Player.worker.size() < 4 || Rollout.purchQ.isEmpty() && Player.worker.size() < 10 && Player.worker.size() < Player.ranger.size() && Player.worker.size() < Player.healer.size()) {
 					for (int k = 0; k < 8; k++) {
 						if (/*round%50==4 && */gc.canReplicate(u.id(), dirs[k])) {
 							//NOTE: ^^^ contains an artificial cap; remove later
