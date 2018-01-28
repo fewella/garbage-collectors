@@ -67,7 +67,7 @@ class Econ {
 					stayFactory.add(temp);
 					if (u.health() == u.maxHealth()) {
 						for (int k = 0; k < 8; k++) {
-							if (Rollout.factLocs.isEmpty() && /*round%50==4 && */gc.canReplicate(temp, dirs[k])) {
+							if (Rollout.factLocs.isEmpty() && !allreachableKarb && Player.worker.size() < 8 && gc.canReplicate(temp, dirs[k])) {
 								//NOTE: ^^^ contains an artificial cap; remove later
 								gc.replicate(temp, dirs[k]);
 								karb = gc.karbonite();
@@ -270,9 +270,9 @@ class Econ {
 				if( unreachable >= dest.size() ) {
 					allreachableKarb = true;
 				}
-				if (Player.worker.size() < 4 || Rollout.purchQ.isEmpty() && Player.worker.size() < 10 && Player.worker.size() < Player.ranger.size() && Player.worker.size() < Player.healer.size()) {
+				if (Player.worker.size() < 4 || Rollout.purchQ.isEmpty() && Player.worker.size() < 10 && Player.worker.size() < Player.ranger.size() && Player.worker.size() < Player.healer.size() && !allreachableKarb) {
 					for (int k = 0; k < 8; k++) {
-						if (/*round%50==4 && */gc.canReplicate(u.id(), dirs[k])) {
+						if (gc.canReplicate(u.id(), dirs[k])) {
 							//NOTE: ^^^ contains an artificial cap; remove later
 							gc.replicate(u.id(), dirs[k]);
 							karb = gc.karbonite();
