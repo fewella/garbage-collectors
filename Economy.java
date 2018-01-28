@@ -281,7 +281,7 @@ class Econ {
 				}
 				//if ( nearFac.size() == 0 ) {
 				//System.out.println(dest.size());
-				if( (gc.karbonite() < 100) && dest.size() > 0 ) {
+				if( /*(gc.karbonite() < 100) &&*/ dest.size() > 0 ) {
 					int min = 9999;
 					int min2 = 9999;
 					int dire = -1;
@@ -290,6 +290,8 @@ class Econ {
 						MapLocation temp = u.location().mapLocation().add(dirs[k]);
 						if( temp.getX() < 0 || temp.getX() >= Player.mapEarth.getWidth() || temp.getY() >= Player.mapEarth.getHeight() || temp.getY() < 0 ) continue;
 						int movetemp = karbMapBFS[temp.getY()][temp.getX()];
+						if( movetemp == -1 || movetemp == 9999 )
+							continue;
 						if(Math.min(movetemp, min) != min) {
 							dire = k;
 							min2 = min;
