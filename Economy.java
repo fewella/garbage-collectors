@@ -11,8 +11,8 @@ class Econ {
 	static int totalRocket = 0;
 
 	//normal stuff
-	static int[][] karbMapBFS;
-	static ArrayList<MapLocation> dest = new ArrayList<MapLocation>();
+	public static int[][] karbMapBFS;
+	public static ArrayList<MapLocation> dest = new ArrayList<MapLocation>();
 
 	static void turn(GameController gc) {
 		//overall structure:
@@ -114,7 +114,6 @@ class Econ {
 			boolean doneAction = false;
 
 			//normal code
-			karbBFS(round);
 			VecUnit nearFac = gc.senseNearbyUnitsByType(mapLoc, 4, UnitType.Factory);
 			//if(stayFactory.contains(u.id())) //System.out.println("Staying by factory");
 			if(!stayFactory.contains(u.id()) && !stayRocket.contains(u.id())) {
@@ -196,6 +195,7 @@ class Econ {
 									temp.add(m);
 							}
 							dest = temp;
+							karbMapBFS = MapAnalysis.BFS(dest);
 						}
 					}
 					else if( (min != 9999 && min != 0) && dire != -1 ) {

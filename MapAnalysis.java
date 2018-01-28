@@ -52,12 +52,15 @@ class MapAnalysis {
 			    occ[loc.getY()][loc.getX()] = 1;
 		    }
 	    	Rollout.setup(Player.gc, c4, Pathing.BFS(e, false), Pathing.BFS(f, false), occ, groups, BFS);
+		    Econ.karbBFS(Player.gc.round());
 	    }
     }
     public static void turn(){
     	Pathing.update(Player.worker, Player.factory, Player.rocket);
 	    if (Player.gc.planet() == Planet.Earth) {
-		    Rollout.turn(Player.worker);
+		    Utils.Tuple<int[][], ArrayList<MapLocation>> t = Rollout.turn(Player.worker, Econ.karbMapBFS, Econ.dest);
+		    Econ.karbMapBFS = t.x;
+		    Econ.dest = t.y;
 	    }
         //MapTools.RocketLanding.turn();
     }

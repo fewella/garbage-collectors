@@ -39,7 +39,7 @@ public class Pathing {
 		int w = (int) map.getWidth();
 		int[][] out = Utils.Misc.cloneMat(blankBFS);
 		//add factories, rockets, (workers for now)
-		if(structures){
+		if(structures && worker != null && factory != null && rocket != null){
 			for(Unit wo : worker){
 				Location loc = wo.location();
 				if(!loc.isOnMap()) continue;
