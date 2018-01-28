@@ -70,6 +70,7 @@ class Econ {
 				else{
 					if (gc.canProduceRobot(u.id(), UnitType.Ranger))
 						gc.produceRobot(u.id(), UnitType.Ranger);
+						//gc.produceRobot(u.id(), UnitType.Knight);
 				}
 				karb = gc.karbonite();
 				for (int k = 0; k < 8; k++)
