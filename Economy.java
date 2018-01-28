@@ -74,7 +74,7 @@ class Econ {
 					if (gc.canProduceRobot(u.id(), UnitType.Worker))
 						gc.produceRobot(u.id(), UnitType.Worker);
 				}
-				if(Player.ranger.size()/6 > Player.healer.size()){
+				if(Player.ranger.size()/4 > Player.healer.size()){
 					if (gc.canProduceRobot(u.id(), UnitType.Healer))
 						gc.produceRobot(u.id(), UnitType.Healer);
 				}
