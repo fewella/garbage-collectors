@@ -38,7 +38,7 @@ public class Convolver{
             multiples[sz][j]=kernel[sz]*j;
         }
     }
-    public int[][] blur(int[][] img){
+    public int[][] blur(int[][] img, boolean scale){
         int c;
         int i,ri,xl,xi,yl,yi,ym;
         int iw=img[0].length;
@@ -85,7 +85,10 @@ public class Convolver{
                     }
                     ri++;
                 }
-                img3[yi][xl]=(max*c)/(255*sum);
+                if(scale)
+                    img3[yi][xl]=c/sum;
+                else
+                    img3[yi][xl]=(max*c)/(255*sum);
             }
             yi++;
         }

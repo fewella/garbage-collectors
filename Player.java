@@ -1,9 +1,5 @@
-import MapTools.Karbonite;
-import MapTools.Passable;
-import MapTools.UnionFind;
 import bc.*;
 
-import java.awt.*;
 import java.text.DecimalFormat;
 import java.util.*;
 
@@ -15,7 +11,7 @@ public class Player {
     static PlanetMap map, mapEarth, mapMars;
     static Queue<Unit> worker, knight, ranger, healer, mage, factory, rocket;
 	static long time1, time2;
-	static long tWorker, tCombot, tRocket, tHealer;
+	static long tMap, tWorker, tCombot, tRocket, tHealer;
 	static DecimalFormat f;
 
     public static void main(String[] args) {
@@ -28,7 +24,6 @@ public class Player {
             mapMars = gc.startingMap(Planet.Mars);
 
             MapAnalysis.setup();
-            Econ.setup();
 
             //queue research
             gc.queueResearch(UnitType.Ranger); //25
@@ -52,7 +47,7 @@ public class Player {
             System.out.println("| Round: " + gc.round());
             System.out.println("| Setup: " + f.format((time2-time1)/1000000.0) + "ms");
 	        System.out.println("--------------");
-	        tWorker = tCombot = tRocket = tHealer = 0;
+	        tMap = tWorker = tCombot = tRocket = tHealer = 0;
         }
         catch(Exception e){
             System.out.println("Exception during setup");
@@ -90,9 +85,11 @@ public class Player {
 		            else
 			            rocket.add(temp);
 	            }
-	            //I'll uncomment when I actually get this part to work :)
-	            //MapAnalysis.turn();
 	            time1 = System.nanoTime();
+	            MapAnalysis.turn();
+	            time2 = System.nanoTime();
+	            tMap += (time2-time1);
+	            time1 = time2;
 	            if (Player.gc.planet() == Planet.Earth) {
 		            Econ.turn(gc);
 	            } else
@@ -118,6 +115,7 @@ public class Player {
 		            System.out.println("| Round: " + gc.round());
 		            System.out.println("| Combot: " + f.format(tCombot/1000000.0) + "ms");
 		            System.out.println("| Econ+wMars: " + f.format(tWorker/1000000.0) + "ms");
+		            System.out.println("| MapAnalysis: " + f.format(tMap/1000000.0) + "ms");
 		            System.out.println("| Rocket: " + f.format(tRocket/1000000.0) + "ms");
 		            System.out.println("| Healer: " + f.format(tHealer/1000000.0) + "ms");
 		            System.out.println("| Remaining: " + gc.getTimeLeftMs() + "ms");

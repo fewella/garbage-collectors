@@ -1,5 +1,6 @@
 // import the API.
 // See xxx for the javadocs.
+import MapTools.*;
 import bc.*;
 import java.util.*;
 
@@ -7,27 +8,11 @@ class Econ {
 	static Direction[] dirs = Direction.values();
 
 	//initial factory stuff
-	static int[][] initBFS;
-	static ArrayList<MapLocation> initLocs;
-	static ArrayList<Integer> initIds;   //factory ids
-	static Map<Integer, Integer> initAssignments;   //worker id to group
-	static int factoriesLeft;
 	static int totalRocket = 0;
 
 	//normal stuff
 	static int[][] karbMapBFS;
 	static ArrayList<MapLocation> dest = new ArrayList<MapLocation>();
-	static void setup() {
-		if (Player.gc.planet() == Planet.Earth) {
-			//initial factory
-			initIds = new ArrayList<>(initLocs.size());
-			for(int i = 0; i < initLocs.size(); i++){
-				initIds.add(0);
-			}
-			factoriesLeft = initLocs.size();
-			initBFS = MapTools.Pathing.BFS(initLocs, false);
-		}
-	}
 
 	static void turn(GameController gc) {
 		//overall structure:
@@ -38,27 +23,27 @@ class Econ {
 		long round = Player.gc.round();
 		long karb = gc.karbonite();    //NOTE: global update after every action that affects it
 		//System.out.println(karb);
-		//Earth strategy:
-		//1. Initial factory
-		//2. Normal Code
 		int madeRocket = 0;
 		HashSet<Integer> stayFactory = new HashSet<Integer>(); //these units will not go out to look for karbonite/make new factories
 		HashSet<Integer> stayRocket = new HashSet<Integer>();
 		//FACTORIES
-		ArrayList<Integer> initCpy = new ArrayList<>(initIds);
+		Map<Integer, Integer> initCpy = new HashMap<>(Rollout.initIds);
 		for (Unit u : Player.factory) {
-			if(initIds.contains(u.id())) {
-				initCpy.remove(Integer.valueOf(u.id()));
+			MapLocation mapLoc = u.location().mapLocation();
+			int comp = UnionFind.id(Planet.Earth, mapLoc.getX(), mapLoc.getY());
+			if(initCpy.containsKey(comp)) {
+				initCpy.remove(comp);
 				if (u.structureIsBuilt() == 1) {
-					int group = initIds.indexOf(u.id());
-					initIds.set(group, 0);
-					while(initAssignments.containsValue(group))
-						initAssignments.values().removeAll(Collections.singleton(group));
-					//System.out.println("round " + round + ": Built group #" + group + "'s initial factory!");
+					Rollout.initIds.remove(comp);
+					Rollout.factTime.remove(comp);
+					Rollout.factLocs.remove(comp);
+					Rollout.pathDist.remove(comp);
+					Rollout.workNum.remove(comp);
+					System.out.println("round " + round + ": Built factory in component " + comp + "!");
 				}
 			}
 			else {
-				VecUnit wF = gc.senseNearbyUnitsByType(u.location().mapLocation(), 2, UnitType.Worker);
+				VecUnit wF = gc.senseNearbyUnitsByType(mapLoc, 2, UnitType.Worker);
 				for (int i = 0; i < wF.size() && i < 1; i++) {
 					int temp = wF.get(i).id(); 
 					stayFactory.add(temp);
@@ -113,18 +98,17 @@ class Econ {
 				}
 			}
 		}
-		for(int id : initCpy){
-			if(id == 0)
-				continue;
-			int group = initIds.indexOf(id);
-			System.out.println("round " + round + ": Construction of group #" + group + "'s factory failed.");
-			initIds.set(group, 0);
-			while(initAssignments.containsValue(group))
-				initAssignments.values().removeAll(Collections.singleton(group));
+		for(int comp : initCpy.keySet()){
+			System.out.println("round " + round + ": Construction of factory in component " + comp + " failed.");
+			Rollout.initIds.remove(comp);
+			Rollout.factTime.remove(comp);
+			Rollout.factLocs.remove(comp);
+			Rollout.pathDist.remove(comp);
+			Rollout.workNum.remove(comp);
 		}
 
 		//WORKERS
-		for(Unit u : Player.worker){
+		for(Unit u : Rollout.normWork){
 			if (!u.location().isOnMap()) continue;
 			MapLocation mapLoc = u.location().mapLocation();
 			boolean doneAction = false;
@@ -238,7 +222,7 @@ class Econ {
 						}
 					}
 				}
-				if (Player.worker.size() < 10 && karb > factoriesLeft * bc.bcUnitTypeBlueprintCost(UnitType.Factory) + bc.bcUnitTypeReplicateCost(UnitType.Worker)) {
+				if (Rollout.purchQ.isEmpty() && Player.worker.size() < 10) {
 					for (int k = 0; k < 8; k++) {
 						if (/*round%50==4 && */gc.canReplicate(u.id(), dirs[k])) {
 							//NOTE: ^^^ contains an artificial cap; remove later
@@ -247,7 +231,7 @@ class Econ {
 						}
 					}
 				}
-				if( Player.factory.size() < 5 ) {
+				if(Rollout.purchQ.isEmpty() && Player.factory.size() < 5 ) {
 					for (int k = 0; k < 8; k++) {
 						if (gc.canBlueprint(u.id(), UnitType.Factory, dirs[k])) {
 							gc.blueprint(u.id(), UnitType.Factory, dirs[k]);
@@ -290,13 +274,14 @@ class Econ {
 		return true;
 	}
 	//[y][x] = [height][width]
-	private static void karbBFS(long r) {
+	public static void karbBFS(long r) {
 		if( dest.size() == 0 && r < 50 ) {
 			System.out.println("Karbonite Map initiated");
 			PlanetMap earth = Player.gc.startingMap(Planet.Earth);
+			int[][] karb = Karbonite.matrix(Planet.Earth, 1);
 			for(int y = 0; y < earth.getHeight(); y++){
 	            for(int x = 0; x < earth.getWidth(); x++){
-	                long k = earth.initialKarboniteAt(new MapLocation(earth.getPlanet(), x, y));
+	                long k = karb[y][x];
 	                if( k > 0 ) {
 	                	dest.add(new MapLocation(Planet.Earth, x, y));
 	                }

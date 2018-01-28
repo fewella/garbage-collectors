@@ -2,8 +2,6 @@ package MapTools;
 
 import Utils.*;
 import bc.*;
-
-import java.net.PasswordAuthentication;
 import java.util.*;
 
 public class RocketLanding {
@@ -38,7 +36,7 @@ public class RocketLanding {
 		        }
 	        }
 	        int[][] karb = Karbonite.matrix(Planet.Mars, 743);
-	        int[][] blurKarb = c.blur(Karbonite.matrix(Planet.Mars, 743));
+	        int[][] blurKarb = c.blur(Karbonite.matrix(Planet.Mars, 743), false);
         	computeDefault(karb, blurKarb, spreadMat);
 	        occupied = new int[passM.length][];
 	        for(int y = 0; y < passM.length; y++)
