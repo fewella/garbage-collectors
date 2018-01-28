@@ -41,6 +41,7 @@ class Econ {
 					Rollout.pathDist.remove(comp);
 					Rollout.workNum.remove(comp);
 					Rollout.status.remove(comp);
+					Rollout.works.remove(comp);
 					Queue<Tuple<Integer, Integer>> temp = new LinkedList<>();
 					while(!Rollout.purchQ.isEmpty()){
 						Tuple<Integer, Integer> t = Rollout.purchQ.remove();
@@ -58,7 +59,7 @@ class Econ {
 					stayFactory.add(temp);
 					if (u.health() == u.maxHealth()) {
 						for (int k = 0; k < 8; k++) {
-							if (/*round%50==4 && */gc.canReplicate(temp, dirs[k])) {
+							if (Rollout.factLocs.isEmpty() && /*round%50==4 && */gc.canReplicate(temp, dirs[k])) {
 								//NOTE: ^^^ contains an artificial cap; remove later
 								gc.replicate(temp, dirs[k]);
 								karb = gc.karbonite();
@@ -116,6 +117,7 @@ class Econ {
 			Rollout.pathDist.remove(comp);
 			Rollout.workNum.remove(comp);
 			Rollout.status.remove(comp);
+			Rollout.works.remove(comp);
 			Queue<Tuple<Integer, Integer>> temp = new LinkedList<>();
 			while(!Rollout.purchQ.isEmpty()){
 				Tuple<Integer, Integer> t = Rollout.purchQ.remove();
