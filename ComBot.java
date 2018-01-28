@@ -188,7 +188,21 @@ class ComBot {
 					p -= (((int) enemy[i].maxHealth() + 29) / 30);
 				}
 			}
+			
+			if (p <= 5)
+				return;
 
+			for (int i = 0; i < enemies; i++) {
+				if (robot(enemy[i])) {
+					doSnipe(ids, p, enemy[i].id(), enemy[i].location().mapLocation(),
+							(((int) enemy[i].maxHealth() + 29) / 30));
+					p -= (((int) enemy[i].maxHealth() + 29) / 30);
+				}
+			}
+			
+			if (p <= 5)
+				return;
+			
 			for (int tryo = 0; tryo < 200 && p > 5; tryo++) {
 				int x = rng.nextInt(mapMaxX);
 				int y = rng.nextInt(mapMaxY);
