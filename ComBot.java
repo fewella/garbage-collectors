@@ -53,6 +53,7 @@ class ComBot {
 	static int mapMaxY;
 	static Planet ourPlanet;
 	static MapLocation[] fact = new MapLocation[20];
+	static int[] enemyComps;
 	// [x][y][x][y], second one always moves
 
 	/*
@@ -116,13 +117,37 @@ class ComBot {
 		VecUnit vu = Player.map.getInitial_units();
 		makeMoveLookup();
 		int p = 0;
+		enemyComps = new int[(int) vu.size() / 2];
 		for (long i = vu.size() - 1; i >= 0; i--) {
 			Unit u = vu.get(i);
 			if (u.team() != gc.team()) {
-				importantFights[p++] = u.location().mapLocation();
+				MapLocation m = u.location().mapLocation();
+				enemyComps[p] = MapTools.UnionFind.id(ourPlanet, m.getX(), m.getY());
+				importantFights[p++] = m;
 			}
 		}
 
+	}
+
+	static void doSnipe(int[] ids, int p, int idt, MapLocation target, int shots) {
+		boolean valid = true;
+		for (int k = 0; k < dontSnipe.length; k++) {
+			if (dontSnipe[k] == idt) {
+				valid = false;
+				break;
+			}
+		}
+		if (valid) {
+			if (p + 1 >= shots) {
+				dontSnipe[dontSnipePos] = idt;
+				dontSnipePos = (dontSnipePos + 1) % dontSnipe.length;
+				while (shots > 0 && p >= 0) {
+					gc.beginSnipe(ids[p], target);
+					shots--;
+					p--;
+				}
+			}
+		}
 	}
 
 	static void snipe() {
@@ -138,73 +163,51 @@ class ComBot {
 			p -= 1;
 			for (int i = 0; i < enemies; i++) {
 				if (enemy[i].unitType() == UnitType.Rocket) {
-					boolean valid = true;
-					for (int k = 0; k < dontSnipe.length; k++) {
-						if (dontSnipe[k] == enemy[i].id()) {
-							valid = false;
-							break;
-						}
-					}
-					if (valid) {
-						int shots = 7;
-						if (p + 1 >= shots) {
-							dontSnipe[dontSnipePos] = enemy[i].id();
-							dontSnipePos = (dontSnipePos + 1) % dontSnipe.length;
-							MapLocation target = enemy[i].location().mapLocation();
-							while (shots > 0 && p >= 0) {
-								gc.beginSnipe(ids[p], target);
-								shots--;
-								p--;
-							}
-						}
-					}
+					doSnipe(ids, p, enemy[i].id(), enemy[i].location().mapLocation(), 7);
+					p -= 7;
 				}
 			}
-			
-			
+
 			if (p <= 8)
 				return;
-			
-			
+
 			for (int i = 0; i < fact.length; i++) {
 				if (fact[i] != null) {
-					int shots = 10;
-					if (p + 1 >= shots) {
-						MapLocation target = fact[i];
-						fact[i]=null;
-						while (shots > 0 && p >= 0) {
-							gc.beginSnipe(ids[p], target);
-							shots--;
-							p--;
-						}
-					}
+					doSnipe(ids, p, fact[i].getX() * 10000 + fact[i].getY(), fact[i], 10);
+					p -= 10;
 				}
 			}
-			
-			
+
+			if (p <= 5)
+				return;
+
 			for (int i = 0; i < enemies; i++) {
-				if (robot(enemy[i]) && enemy[i].movementHeat()==0) {
-					boolean valid = true;
-					for (int k = 0; k < dontSnipe.length; k++) {
-						if (dontSnipe[k] == enemy[i].id()) {
-							valid = false;
-							break;
+				if (robot(enemy[i]) && enemy[i].movementHeat() == 0) {
+					doSnipe(ids, p, enemy[i].id(), enemy[i].location().mapLocation(),
+							(((int) enemy[i].maxHealth() + 29) / 30));
+					p -= (((int) enemy[i].maxHealth() + 29) / 30);
+				}
+			}
+
+			for (int tryo = 0; tryo < 200 && p > 5; tryo++) {
+				int x = rng.nextInt(mapMaxX);
+				int y = rng.nextInt(mapMaxY);
+				MapLocation loc = new MapLocation(ourPlanet, x, y);
+				if (MapTools.Passable.matrix(ourPlanet)[y][x] != 0) {
+					int comp = MapTools.UnionFind.id(ourPlanet, x, y);
+					if (MapTools.UnionFind.size(ourPlanet, comp) > 2 && !gc.canSenseLocation(loc)) {
+						boolean valid = false;
+						for (int i = 0; i < enemyComps.length; i++) {
+							if (comp == enemyComps[i])
+								valid = true;
 						}
-					}
-					if (valid) {
-						int shots = (((int)enemy[i].maxHealth()+29)/30);
-						if (p + 1 >= shots) {
-							dontSnipe[dontSnipePos] = enemy[i].id();
-							dontSnipePos = (dontSnipePos + 1) % dontSnipe.length;
-							MapLocation target = enemy[i].location().mapLocation();
-							while (shots > 0 && p >= 0) {
-								gc.beginSnipe(ids[p], target);
-								shots--;
-								p--;
-							}
+						if (valid) {
+							doSnipe(ids, p, x * 10000 + y, loc, 7);
+							p -= 7;
 						}
 					}
 				}
+
 			}
 		}
 	}
@@ -393,8 +396,8 @@ class ComBot {
 				targs.add(importantFights[i]);
 			}
 		}
-		for (int i=0; i<fact.length; i++) {
-			if (fact[i]!=null) {
+		for (int i = 0; i < fact.length; i++) {
+			if (fact[i] != null) {
 				targs.add(fact[i]);
 			}
 		}
@@ -552,7 +555,7 @@ class ComBot {
 				MapLocation mp = enemy[i].location().mapLocation();
 				boolean newf = true;
 				for (int k = 0; k < fact.length; k++) {
-					if (fact[k]!=null && mp.equals(fact[k])) {
+					if (fact[k] != null && mp.equals(fact[k])) {
 						newf = false;
 						break;
 					}
