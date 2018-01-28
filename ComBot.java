@@ -34,6 +34,8 @@ class ComBot {
 	static MapLocation[] importantFights=new MapLocation[5];
 	static Unit[] myR = new Unit[500];
 	static int rangers = 0;
+	static Unit[] myK = new Unit[100];
+	static int knights = 0;
 	static Unit[] enemy = new Unit[300];
 	static int[] canHit = new int[300];
 	static int[] healths = new int[300];
@@ -211,10 +213,49 @@ class ComBot {
 		return pri;
 	}
 
+	static int kPri(int e, MapLocation pos) {
+		Unit u = enemy[e];
+		if (healths[e] <= 0)
+			return 99999;
+		MapLocation en = u.location().mapLocation();
+		int d = d2(en, pos);
+		if (d > 2)
+			return 99999;
+		int pri = (int) (3 * healths[e]);
+		if (robot(u) && Math.abs(u.damage()) > 0) {
+			pri -= Math.abs(u.damage());
+		}
+		if (canHit[e] == 0)
+			pri += 1000;
+		if (enemy[e].unitType()==UnitType.Healer) pri-=1010;
+		pri += d;
+		return pri;
+	}
 	static void shootPeople() {
+		for (int i = 0; i < knights; i++) {
+			int mr=myK[i].id();
+			if (gc.isAttackReady(mr)) {
+				MapLocation loc = gc.unit(mr).location().mapLocation();
+				int minPri = 9999;
+				int shoot = -1;
+				for (int k = 0; k < enemies; k++) {
+					int pri = kPri(k, loc);
+					if (pri < minPri) {
+						minPri = pri;
+						shoot = k;
+					}
+				}
+				if (shoot >= 0) {
+					// System.out.println(myR[i].location().mapLocation().distanceSquaredTo(enemy[shoot].location().mapLocation()));
+					gc.attack(mr, enemy[shoot].id());
+					healths[shoot] -= 80;
+				}
+			}
+		}
 		for (int i = 0; i < rangers; i++) {
-			if (gc.isAttackReady(myR[i].id())) {
-				MapLocation loc = gc.unit(myR[i].id()).location().mapLocation();
+			int mr=myR[i].id();
+			if (gc.isAttackReady(mr)) {
+				MapLocation loc = gc.unit(mr).location().mapLocation();
 				int minPri = 9999;
 				int shoot = -1;
 				for (int k = 0; k < enemies; k++) {
@@ -226,8 +267,8 @@ class ComBot {
 				}
 				if (shoot >= 0) {
 					// System.out.println(myR[i].location().mapLocation().distanceSquaredTo(enemy[shoot].location().mapLocation()));
-					gc.attack(myR[i].id(), enemy[shoot].id());
-					healths[shoot] -= myR[i].damage();
+					gc.attack(mr, enemy[shoot].id());
+					healths[shoot] -= 30;
 				}
 			}
 		}
@@ -262,6 +303,7 @@ class ComBot {
 		enemies = 0;
 		rangers = 0;
 		hitters = 0;
+		knights=0;
 		VecUnit us = gc.units();
 		for (long i = us.size() - 1; i >= 0; i--) {
 			Unit u = us.get(i);
@@ -272,6 +314,8 @@ class ComBot {
 				enemies++;
 			} else if (u.unitType() == UnitType.Ranger && u.location().isOnMap()) {
 				myR[rangers++] = u;
+			} else if (u.unitType() == UnitType.Knight && u.location().isOnMap()) {
+				myK[knights++] = u;
 			}
 		}
 
@@ -367,15 +411,51 @@ class ComBot {
 		}
 		bfs = MapAnalysis.BFS(targs);
 		int[][] rngBfs=MapAnalysis.BFS(rngTargs);
+		for (int i = 0; i < knights; i++) {
+			if (gc.isMoveReady(myK[i].id())) {
+				int best = -1;
+				int val = 99999;
+				Unit mr=myK[i];
+				MapLocation myloc = mr.location().mapLocation();
+				int x=myloc.getX();
+				int y=myloc.getY();
+				for (int d = 0; d < 9; d++) {
+					if (gc.canMove(mr.id(), dirs[d])) {
+						MapLocation nloc = myloc.add(dirs[d]);
+						int nx=nloc.getX();
+						int ny=nloc.getY();
+						int v = 0;
+						for (int k = 0; k < hitters; k++) {
+							MapLocation mp=hitter[k].location().mapLocation();
+							if ((hitterCanHit[k] == 0
+									|| d2m[x][y][mp.getX()][mp.getY()] <= hitter[k].attackRange())
+									&& d2m[nx][ny][mp.getX()][mp.getY()] <= hitter[k].attackRange()) {
+								v++;
+							}
+						}
+						v += 1000*bfs[ny][nx];
+						v+= 10*rngBfs[ny][nx];
+						if (v < val) {
+							val = v;
+							best = d;
+						}
+					}
+				}
+				if (best != -1) {
+					gc.moveRobot(mr.id(), dirs[best]);
+				}
+			}
+		}
 		for (int i = 0; i < rangers; i++) {
 			if (gc.isMoveReady(myR[i].id())) {
 				int best = -1;
 				int val = 99999;
-				MapLocation myloc = myR[i].location().mapLocation();
+				Unit mr=myR[i];
+				MapLocation myloc = mr.location().mapLocation();
 				int x=myloc.getX();
 				int y=myloc.getY();
 				for (int d = 0; d < 9; d++) {
-					if (gc.canMove(myR[i].id(), dirs[d])) {
+					if (gc.canMove(mr.id(), dirs[d])) {
 						MapLocation nloc = myloc.add(dirs[d]);
 						int nx=nloc.getX();
 						int ny=nloc.getY();
@@ -393,7 +473,7 @@ class ComBot {
 							v -= 1100;
 						}
 
-						if (gc.unit(myR[i].id()).attackHeat() == 0) {
+						if (gc.unit(mr.id()).attackHeat() == 0) {
 							if (toRock[i]) {
 								v += pRock[ny][nx];
 								//System.out.println("Headed to rocket");
@@ -419,7 +499,7 @@ class ComBot {
 					}
 				}
 				if (best != -1) {
-					gc.moveRobot(myR[i].id(), dirs[best]);
+					gc.moveRobot(mr.id(), dirs[best]);
 				}
 			}
 		}

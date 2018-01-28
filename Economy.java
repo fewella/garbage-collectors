@@ -13,8 +13,8 @@ class Econ {
 	static int totalRocket = 0;
 
 	//normal stuff
-	static int[][] karbMapBFS;
-	static ArrayList<MapLocation> dest = new ArrayList<MapLocation>();
+	public static int[][] karbMapBFS;
+	public static ArrayList<MapLocation> dest = new ArrayList<MapLocation>();
 
 	static void turn(GameController gc) {
 		//System.out.println(dest.size());
@@ -81,6 +81,7 @@ class Econ {
 				else{
 					if (gc.canProduceRobot(u.id(), UnitType.Ranger))
 						gc.produceRobot(u.id(), UnitType.Ranger);
+						//gc.produceRobot(u.id(), UnitType.Knight);
 				}
 				karb = gc.karbonite();
 				for (int k = 0; k < 8; k++)
@@ -219,6 +220,7 @@ class Econ {
 									temp.add(m);
 							}
 							dest = temp;
+							karbMapBFS = MapAnalysis.BFS(dest);
 						}
 					}
 					else if( (min != 9999 && min != 0) && dire != -1 ) {

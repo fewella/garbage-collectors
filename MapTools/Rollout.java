@@ -82,7 +82,7 @@ public class Rollout {
 
 		initIds = new HashMap<>(factLocs.size());
 	}
-	public static void turn(Queue<Unit> worker){
+	public static Tuple<int[][], ArrayList<MapLocation>> turn(Queue<Unit> worker, int[][] karbMapBFS, ArrayList<MapLocation> dest){
 		workNum = new HashMap<>(workNum.size());
 		normWork = new LinkedList<>();
 		for(Unit u : worker){
@@ -95,7 +95,9 @@ public class Rollout {
 				normWork.add(u);
 				continue;
 			}
-			if(/*TODO*/pathDist.get(comp) < factBFS[mapLoc.getY()][mapLoc.getX()]) {
+			MapLocation initLoc = factLocs.get(comp);
+			double safe = (pathDist.get(comp)-gc.round()/2 - factBFS[mapLoc.getY()][mapLoc.getX()]);
+			if(!mapLoc.isAdjacentTo(initLoc) && safe < 0) {
 				normWork.add(u);
 				continue;
 			}
@@ -108,92 +110,178 @@ public class Rollout {
 			//1. if far, move by matrix
 			//2. else: blueprint/build
 			//3. if possible, replicate/collect karb
-			MapLocation initLoc = factLocs.get(comp);
 			Collections.shuffle(Arrays.asList(dirs));    //to prevent workers getting stuck
 			Tuple<Integer, Integer> t = Rollout.purchQ.peek();
-			if (!mapLoc.isAdjacentTo(initLoc)) {    //out of reach
-				//1. move
-				//TODO: move better
-				if (gc.isMoveReady(u.id())) {
-					Direction minD = Direction.Center;
-					int min = factBFS[mapLoc.getY()][mapLoc.getX()];
-					for (Direction d : dirs) {
-						if(d == Direction.Center)
-							continue;
-						MapLocation newLoc = mapLoc.add(d);
-						if (newLoc.getX() < 0 || newLoc.getY() < 0 || newLoc.getX() >= earth.getWidth() || newLoc.getY() >= earth.getHeight())
-							continue;
-						int newMin = factBFS[newLoc.getY()][newLoc.getX()];
-						if (newMin < min && gc.canMove(u.id(), d)) {
-							min = newMin;
-							minD = d;
+
+			Team enemy = Team.Blue;
+			if(gc.team() == Team.Blue)
+				enemy = Team.Red;
+			VecUnit vs = gc.senseNearbyUnitsByTeam(mapLoc, u.visionRange(), enemy);
+			int count = 0;
+			for(int i = 0; i < vs.size(); i++){
+				UnitType type = vs.get(i).unitType();
+				if(type == UnitType.Ranger || type == UnitType.Knight || type == UnitType.Mage)
+					count++;
+			}
+			if(safe > 1 && count == 0){
+				//insert Honor Code here
+				int min = 9999;
+				int min2 = 9999;
+				int dire = -1;
+				int dire2 = -1;
+				for (int k = 0; k < 8; k++) {
+					MapLocation temp = u.location().mapLocation().add(dirs[k]);
+					if( temp.getX() < 0 || temp.getX() >= earth.getWidth() || temp.getY() >= earth.getHeight() || temp.getY() < 0 ) continue;
+					int movetemp = karbMapBFS[temp.getY()][temp.getX()];
+					if( movetemp == -1 || movetemp == 9999 )
+						continue;
+					if(Math.min(movetemp, min) != min) {
+						dire = k;
+						min2 = min;
+						min = Math.min(movetemp, min);
+					}
+					else if( Math.min(movetemp, min2) != min2 ) {
+						dire2 = k;
+						min2 = Math.min(movetemp, min2);
+						if( min2 < min ) {
+							int t2 = min2;
+							min2 = min;
+							min = t2;
+							int td = dire2;
+							dire2 = dire;
+							dire = td;
 						}
 					}
-					if (gc.canMove(u.id(), minD))
-						gc.moveRobot(u.id(), minD);
 				}
-			} else if(mapLoc.isAdjacentTo(initLoc)) {
-				//2. blueprint/build
-				try {
-					Unit f = gc.senseUnitAtLocation(initLoc);
-					if(f.team() != gc.team())
-						throw new RuntimeException("ayy lmao");
-					//build
-					if (gc.canBuild(u.id(), f.id())) {
-						gc.build(u.id(), f.id());
-						doneAction = true;
+				//System.out.println("Min: " + min + " Min2: " + min2);
+				if (min == 0 ) { //0 or 1??
+					if(gc.canHarvest(u.id(), dirs[dire])) {
+						//if (round > 1 && karb < 300) {
+						//System.out.println("Harvesting karbonite");
+						gc.harvest(u.id(), dirs[dire]);
+						//}
 					}
-				} catch (RuntimeException e){
-					//blueprint
-					if(gc.karbonite() >= bc.bcUnitTypeBlueprintCost(UnitType.Factory) && t != null && t.x == comp && t.y == 0) {
-						if (gc.canBlueprint(u.id(), UnitType.Factory, mapLoc.directionTo(initLoc))) {
-							gc.blueprint(u.id(), UnitType.Factory, mapLoc.directionTo(initLoc));
-							doneAction = true;
-							try {
-								Unit f = gc.senseUnitAtLocation(initLoc);
-								initIds.put(comp, f.id());
-								Pathing.factory.add(f);
-								Rollout.purchQ.remove();
-								t = Rollout.purchQ.peek();
-							} catch (Exception e2) {
-								System.out.println("can not find factory");
-							}
-							System.out.println("round " + gc.round() + ": Placed initial factory for component " + comp);
-						} else {
-							//if occupied by other team
-							for(Direction d : dirs){
-								if (gc.canBlueprint(u.id(), UnitType.Factory, d)) {
-									gc.blueprint(u.id(), UnitType.Factory, d);
-									doneAction = true;
-									MapLocation newLoc = mapLoc.add(d);
-									try {
-										Unit f = gc.senseUnitAtLocation(newLoc);
-										initIds.put(comp, f.id());
-										Pathing.factory.add(f);
-										Rollout.purchQ.remove();
-										t = Rollout.purchQ.peek();
-									} catch (Exception e2) {
-										System.out.println("can not find factory");
-									}
-									System.out.println("round " + gc.round() + ": Placed initial factory for component " + comp);
-									factLocs.put(comp, newLoc);
+					else {
+						//Probably make BFS take a hashset??
+						//Remove - it's empty
+						ArrayList<MapLocation> temp = new ArrayList<MapLocation>();
+						for( MapLocation m: dest) {
+							if( !m.equals(u.location().mapLocation().add(dirs[dire])) )
+								temp.add(m);
+						}
+						dest = temp;
+						karbMapBFS = Pathing.BFS(dest, true);
+					}
+				}
+				else if( (min != 9999 && min != 0) && dire != -1 ) {
+					if( gc.isMoveReady(u.id()) && gc.canMove(u.id(), dirs[dire]) ) {
+						gc.moveRobot(u.id(), dirs[dire]);
+						//System.out.println("Moving to karbonite");
+					}
+				}
+				else if( min2 != 9999 && dire2 != -1 ) {
+					if( min2 != 0 ) {
+						if( gc.isMoveReady(u.id()) && gc.canMove(u.id(), dirs[dire2]) ) {
+							gc.moveRobot(u.id(), dirs[dire2]);
+							//System.out.println("Moving to karbonite");
+						}
+					}
+					else {
+						if(gc.canHarvest(u.id(), dirs[dire2])) {
+							//if (round > 1 && karb < 300) {
+							//System.out.println("Harvesting karbonite");
+							gc.harvest(u.id(), dirs[dire]);
+							//}
+						}
+					}
+				}
+			}
 
-									ArrayList<MapLocation> temp = new ArrayList<>(factLocs.size()*8);
-									for(int key : factLocs.keySet()){
-										MapLocation loc = factLocs.get(key);
-										for(Direction d2 : Direction.values()) {
-											if(d2 == Direction.Center)
-												continue;
-											MapLocation newLoc2 = loc.add(d2);
-											if(!earth.onMap(newLoc2))
-												continue;
-											if(pass[newLoc2.getY()][newLoc2.getX()] == 0)
-												continue;
-											temp.add(newLoc2);
+			else{
+				if (!mapLoc.isAdjacentTo(initLoc)) {    //out of reach
+					//1. move
+					//TODO: move better
+					if (gc.isMoveReady(u.id())) {
+						Direction minD = Direction.Center;
+						int min = factBFS[mapLoc.getY()][mapLoc.getX()];
+						for (Direction d : dirs) {
+							if(d == Direction.Center)
+								continue;
+							MapLocation newLoc = mapLoc.add(d);
+							if (newLoc.getX() < 0 || newLoc.getY() < 0 || newLoc.getX() >= earth.getWidth() || newLoc.getY() >= earth.getHeight())
+								continue;
+							int newMin = factBFS[newLoc.getY()][newLoc.getX()];
+							if (newMin < min && gc.canMove(u.id(), d)) {
+								min = newMin;
+								minD = d;
+							}
+						}
+						if (gc.canMove(u.id(), minD))
+							gc.moveRobot(u.id(), minD);
+					}
+				} else if(mapLoc.isAdjacentTo(initLoc)) {
+					//2. blueprint/build
+					try {
+						Unit f = gc.senseUnitAtLocation(initLoc);
+						if (f.team() != gc.team())
+							throw new RuntimeException("ayy lmao");
+						//build
+						if (gc.canBuild(u.id(), f.id())) {
+							gc.build(u.id(), f.id());
+							doneAction = true;
+						}
+					} catch (RuntimeException e) {
+						//blueprint
+						if (gc.karbonite() >= bc.bcUnitTypeBlueprintCost(UnitType.Factory) && t != null && t.x == comp && t.y == 0) {
+							if (gc.canBlueprint(u.id(), UnitType.Factory, mapLoc.directionTo(initLoc))) {
+								gc.blueprint(u.id(), UnitType.Factory, mapLoc.directionTo(initLoc));
+								doneAction = true;
+								try {
+									Unit f = gc.senseUnitAtLocation(initLoc);
+									initIds.put(comp, f.id());
+									Pathing.factory.add(f);
+									Rollout.purchQ.remove();
+									t = Rollout.purchQ.peek();
+								} catch (Exception e2) {
+									System.out.println("can not find factory");
+								}
+								System.out.println("round " + gc.round() + ": Placed initial factory for component " + comp);
+							} else {
+								//if occupied by other team
+								for (Direction d : dirs) {
+									if (gc.canBlueprint(u.id(), UnitType.Factory, d)) {
+										gc.blueprint(u.id(), UnitType.Factory, d);
+										doneAction = true;
+										MapLocation newLoc = mapLoc.add(d);
+										try {
+											Unit f = gc.senseUnitAtLocation(newLoc);
+											initIds.put(comp, f.id());
+											Pathing.factory.add(f);
+											Rollout.purchQ.remove();
+											t = Rollout.purchQ.peek();
+										} catch (Exception e2) {
+											System.out.println("can not find factory");
 										}
+										System.out.println("round " + gc.round() + ": Placed initial factory for component " + comp);
+										factLocs.put(comp, newLoc);
+
+										ArrayList<MapLocation> temp = new ArrayList<>(factLocs.size() * 8);
+										for (int key : factLocs.keySet()) {
+											MapLocation loc = factLocs.get(key);
+											for (Direction d2 : Direction.values()) {
+												if (d2 == Direction.Center)
+													continue;
+												MapLocation newLoc2 = loc.add(d2);
+												if (!earth.onMap(newLoc2))
+													continue;
+												if (pass[newLoc2.getY()][newLoc2.getX()] == 0)
+													continue;
+												temp.add(newLoc2);
+											}
+										}
+										factBFS = Pathing.BFS(temp, false);
+										break;
 									}
-									factBFS = Pathing.BFS(temp, false);
-									break;
 								}
 							}
 						}
@@ -246,6 +334,7 @@ public class Rollout {
 			factLocs.remove(comp);
 			pathDist.remove(comp);
 		}
+		return new Tuple<>(karbMapBFS, dest);
 	}
 	private static void updateQueue(Set<Integer> comps, int[][] allies, int[][] enemies, Map<Integer, Integer> work, int[][] neigh){
 		//TODO: factory production
@@ -337,7 +426,7 @@ public class Rollout {
 				score -= karb[y][x];    //100
 				score += 2*karbBlur[y][x];    //75
 				score += time*Math.sqrt(enemies[y][x])/10;     //50
-				score -= 4*Math.max(time/2, allies[y][x]);      //50
+				score -= 4*Math.max(time/2-3, allies[y][x]);      //50
 
 				if(!max.containsKey(id) || max.get(id) < score){
 					max.put(id, score);
@@ -365,7 +454,7 @@ public class Rollout {
 		factBFS = Pathing.BFS(temp, false);
 		for(int key : factLocs.keySet()) {
 			MapLocation loc = factLocs.get(key);
-			pathDist.put(key, Math.max(allies[loc.getY()][loc.getX()], factTime.get(key)));
+			pathDist.put(key, Math.max(allies[loc.getY()][loc.getX()], factTime.get(key))+5);
 		}
 	}
 	private static int[][] blurN(int[][] img){
