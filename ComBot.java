@@ -29,8 +29,9 @@ class ComBot {
 	static Random rng = new Random(7);
 	static GameController gc;
 	static int fights = 3;
-	static MapLocation[] fight = new MapLocation[12];
-	static int[] fightR = new int[12];
+	static MapLocation[] fight = new MapLocation[50];
+	static int[] fightR = new int[50];
+	static MapLocation[] importantFights=new MapLocation[5];
 	static Unit[] myR = new Unit[500];
 	static int rangers = 0;
 	static Unit[] enemy = new Unit[300];
@@ -43,10 +44,14 @@ class ComBot {
 	static Snipe[] snipe = new Snipe[20];
 	static int[][] bfs;
 	static Team ot;
+	static Team ourTeam;
 	static int[] dontSnipe = new int[20];
 	static int dontSnipePos = -1;
 	static int[] hitterCanHit = new int[200];
 	static short[][][][] d2m = new short[50][50][50][50];
+	static int mapMaxX;
+	static int mapMaxY;
+	static Planet ourPlanet;
 	// [x][y][x][y], second one always moves
 
 	/*
@@ -57,6 +62,8 @@ class ComBot {
 	static void makeMoveLookup() {
 		int xm = (int) Player.map.getWidth();
 		int ym = (int) Player.map.getHeight();
+		mapMaxX=xm;
+		mapMaxY=ym;
 		int[][] mat = MapTools.Passable.matrix(gc.planet());
 		int tooY=ym-1;
 		int tooX=xm-1;
@@ -90,6 +97,13 @@ class ComBot {
 	static void init(GameController gameC) {
 		gc = gameC;
 		ot = gc.team() == Team.Red ? Team.Blue : Team.Red;
+		ourTeam=gc.team();
+		ourPlanet=gc.planet();
+		if (ourPlanet==Planet.Earth) {
+			fights=4;
+		} else {
+			fights=40;
+		}
 		for (int i = 0; i < snipe.length; i++) {
 			snipe[i] = new Snipe(10, null, -1);
 		}
@@ -99,13 +113,8 @@ class ComBot {
 		for (long i = vu.size() - 1; i >= 0; i--) {
 			Unit u = vu.get(i);
 			if (u.team() != gc.team()) {
-				fightR[p] = 200;
-				fight[p++] = u.location().mapLocation();
+				importantFights[p++] = u.location().mapLocation();
 			}
-		}
-		for (int i = p; i < fights; i++) {
-			fightR[i] = 200;
-			fight[i] = fight[p];
 		}
 
 	}
@@ -226,16 +235,21 @@ class ComBot {
 	}
 
 	static void resetFights() {
+		for (int i=0; i<importantFights.length; i++) {
+			if (importantFights[i]!=null && gc.hasUnitAtLocation(importantFights[i]) && gc.senseUnitAtLocation(importantFights[i]).team()==ourTeam) {
+				importantFights[i]=null;
+			}
+		}
 		int r = (int) gc.round();
 		for (int i = 0; i < fights; i++) {
 			if (r - fightR[i] > 100 || fight[i] == null
 					|| (gc.senseNearbyUnitsByTeam(fight[i], 0, gc.team()).size() != 0)) {
 
 				while (true) {
-					int x = rng.nextInt((int) Player.map.getWidth());
-					int y = rng.nextInt((int) Player.map.getHeight());
-					if (MapTools.Passable.matrix(gc.planet())[y][x] != 0) {
-						fight[i] = new MapLocation(gc.planet(), x, y);
+					int x = rng.nextInt(mapMaxX);
+					int y = rng.nextInt(mapMaxY);
+					if (MapTools.Passable.matrix(ourPlanet)[y][x] != 0) {
+						fight[i] = new MapLocation(ourPlanet, x, y);
 						fightR[i] = r;
 						break;
 					}
@@ -289,9 +303,15 @@ class ComBot {
 		shootPeople();
 		resetFights();
 		ArrayList<MapLocation> targs = new ArrayList<MapLocation>(enemies + 12);
+		ArrayList<MapLocation> rngTargs=new ArrayList<MapLocation>(fights);
+		for (int i=0; i<importantFights.length; i++) {
+			if (importantFights[i]!=null) {
+				targs.add(importantFights[i]);
+			}
+		}
 		for (int i = 0; i < fights; i++) {
 			if (fight[i] != null) {
-				targs.add(fight[i]);
+				rngTargs.add(fight[i]);
 			}
 		}
 		for (int i = 0; i < enemies; i++) {
@@ -346,6 +366,7 @@ class ComBot {
 			}
 		}
 		bfs = MapAnalysis.BFS(targs);
+		int[][] rngBfs=MapAnalysis.BFS(rngTargs);
 		for (int i = 0; i < rangers; i++) {
 			if (gc.isMoveReady(myR[i].id())) {
 				int best = -1;
@@ -377,7 +398,8 @@ class ComBot {
 								v += pRock[ny][nx];
 								//System.out.println("Headed to rocket");
 							} else {
-								v += bfs[ny][nx];
+								v += 10*bfs[ny][nx];
+								v+= rngBfs[ny][nx];
 							}
 						} else {
 							int mind = 999;

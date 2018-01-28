@@ -8,7 +8,7 @@ class Rocket {
 				if (r.structureGarrison().size() != r.structureMaxCapacity() && r.location().isOnPlanet(Planet.Earth)) {
 					VecUnit loUnit = gc.senseNearbyUnitsByTeam(r.location().mapLocation(), 2, gc.team());
 					for (int i = 0; i < loUnit.size(); i++) {
-						if (gc.canLoad(r.id(), loUnit.get(i).id())) {
+						if (!loUnit.get(i).unitType().equals(UnitType.Worker) && gc.canLoad(r.id(), loUnit.get(i).id())) {
 							gc.load(r.id(), loUnit.get(i).id());
 							System.out.println(loUnit.get(i).unitType() + " loaded");
 						}

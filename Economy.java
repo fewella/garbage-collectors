@@ -141,13 +141,13 @@ class Econ {
 					if (gc.canBuild(u.id(), nearRock.get(0).id())) {
 						gc.build(u.id(), nearRock.get(0).id());
 						doneAction = true;
-					} else if (gc.canLoad(nearRock.get(0).id(), u.id())) {
+					} /*else if (gc.canLoad(nearRock.get(0).id(), u.id())) {
 						gc.load(nearRock.get(0).id(), u.id());
 						//System.out.println("worker loaded");
 						doneAction = true;
-					}
+					}*/
 				}
-				VecUnit nearRan = gc.senseNearbyUnitsByType(mapLoc, 36, UnitType.Ranger);
+				//VecUnit nearRan = gc.senseNearbyUnitsByType(mapLoc, 36, UnitType.Ranger);
 				//if ((nearRan.size() > 2 || round > 600) && round > 250 && madeRocket < 3 && Player.rocket.size() < 3 && !doneAction && (nearFac.size() == 0 || round >500) ) {
 				if (round > 250 && madeRocket < 3 && Player.rocket.size() < 3 && !doneAction && (nearFac.size() == 0 || round >500) ) {
 					//move from factories
@@ -165,7 +165,7 @@ class Econ {
 				}
 				//if ( nearFac.size() == 0 ) {
 				//System.out.println(dest.size());
-				if( (gc.karbonite() < 100) && dest.size() > 0 ) {
+				if( /*(gc.karbonite() < 100) &&*/ dest.size() > 0 ) {
 					int min = 9999;
 					int min2 = 9999;
 					int dire = -1;
@@ -174,6 +174,8 @@ class Econ {
 						MapLocation temp = u.location().mapLocation().add(dirs[k]);
 						if( temp.getX() < 0 || temp.getX() >= Player.mapEarth.getWidth() || temp.getY() >= Player.mapEarth.getHeight() || temp.getY() < 0 ) continue;
 						int movetemp = karbMapBFS[temp.getY()][temp.getX()];
+						if( movetemp == -1 || movetemp == 9999 )
+							continue;
 						if(Math.min(movetemp, min) != min) {
 							dire = k;
 							min2 = min;
@@ -195,11 +197,11 @@ class Econ {
 					//System.out.println("Min: " + min + " Min2: " + min2);
 					if (min == 0 ) { //0 or 1??
 						if(gc.canHarvest(u.id(), dirs[dire])) {
-							if (round > 1 && karb < 300) {
+							//if (round > 1 && karb < 300) {
 								//System.out.println("Harvesting karbonite");
 								gc.harvest(u.id(), dirs[dire]);
 								karb = gc.karbonite();
-							}
+							//}
 						}
 						else {
 							//Probably make BFS take a hashset??
@@ -227,11 +229,11 @@ class Econ {
 						}
 						else {
 							if(gc.canHarvest(u.id(), dirs[dire2])) {
-								if (round > 1 && karb < 300) {
+								//if (round > 1 && karb < 300) {
 									//System.out.println("Harvesting karbonite");
 									gc.harvest(u.id(), dirs[dire]);
 									karb = gc.karbonite();
-								}
+								//}
 							}
 						}
 					}
