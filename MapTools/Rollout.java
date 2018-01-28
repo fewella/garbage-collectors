@@ -20,6 +20,8 @@ public class Rollout {
 	//updateQueue
 	public static Map<Integer, Integer> factTime; //id, round
 	public static Queue<Tuple<Integer, Integer>> purchQ;   //id, type
+	public static Map<Integer, Integer> status; //id, actions
+	public static Map<Integer, Integer> works;  //id, num
 	//locs
 	public static Map<Integer, MapLocation> factLocs;  //id, loc; may not contain if all occupied
 	public static int[][] factBFS;
@@ -76,6 +78,8 @@ public class Rollout {
 				workNum.put(id, min);
 			}
 		}
+		status = new HashMap<>(3);
+		works = new HashMap<>(3);
 		updateQueue(UnionFind.components(Planet.Earth), allies, enemies, workNum, neigh);
 		int[][] karb = Karbonite.matrix(Planet.Earth, 1);
 		locs(pass, neigh, open, karb, c4.blur(karb, false), enemies, allies, occupied);
@@ -83,6 +87,7 @@ public class Rollout {
 		initIds = new HashMap<>(factLocs.size());
 	}
 	public static Tuple<int[][], ArrayList<MapLocation>> turn(Queue<Unit> worker, int[][] karbMapBFS, ArrayList<MapLocation> dest){
+		updateQueue(UnionFind.components(Planet.Earth), allies, enemies, workNum, neigh);
 		workNum = new HashMap<>(workNum.size());
 		normWork = new LinkedList<>();
 		for(Unit u : worker){
@@ -200,7 +205,6 @@ public class Rollout {
 			else{
 				if (!mapLoc.isAdjacentTo(initLoc)) {    //out of reach
 					//1. move
-					//TODO: move better
 					if (gc.isMoveReady(u.id())) {
 						Direction minD = Direction.Center;
 						int min = factBFS[mapLoc.getY()][mapLoc.getX()];
@@ -228,6 +232,7 @@ public class Rollout {
 						//build
 						if (gc.canBuild(u.id(), f.id())) {
 							gc.build(u.id(), f.id());
+							status.put(comp, status.get(comp)+1);
 							doneAction = true;
 						}
 					} catch (RuntimeException e) {
@@ -239,6 +244,7 @@ public class Rollout {
 								try {
 									Unit f = gc.senseUnitAtLocation(initLoc);
 									initIds.put(comp, f.id());
+									status.put(comp, 0);
 									Pathing.factory.add(f);
 									Rollout.purchQ.remove();
 									t = Rollout.purchQ.peek();
@@ -256,6 +262,7 @@ public class Rollout {
 										try {
 											Unit f = gc.senseUnitAtLocation(newLoc);
 											initIds.put(comp, f.id());
+											status.put(comp, 0);
 											Pathing.factory.add(f);
 											Rollout.purchQ.remove();
 											t = Rollout.purchQ.peek();
@@ -329,13 +336,23 @@ public class Rollout {
 		for(int comp : toRemove){
 			if(initIds.containsKey(comp)) {
 				initIds.remove(comp);
+				status.remove(comp);
 			}
 			factTime.remove(comp);
 			factLocs.remove(comp);
 			pathDist.remove(comp);
+			Queue<Tuple<Integer, Integer>> temp = new LinkedList<>();
+			while(!purchQ.isEmpty()){
+				Tuple<Integer, Integer> t = purchQ.remove();
+				if(t.x != comp)
+					temp.add(t);
+			}
+			purchQ = temp;
 		}
+		System.out.println(status);
 		return new Tuple<>(karbMapBFS, dest);
 	}
+
 	private static void updateQueue(Set<Integer> comps, int[][] allies, int[][] enemies, Map<Integer, Integer> work, int[][] neigh){
 		//TODO: factory production
 		//1. Insert with original scores
@@ -349,14 +366,16 @@ public class Rollout {
 			int score = 0;
 			score += UnionFind.size(Planet.Earth, id);
 			score += 2*UnionFind.karbonite(Planet.Earth, id);
+			if(status.containsKey(id))
+				score -= 500;
 			pq.add(new Tuple<>(id, score));
 		}
 
 		//2. Loop over pq
 		long karb = gc.karbonite();
 		long round = gc.round();
-		Map<Integer, Integer> buildStatus = new HashMap<>(pq.size());   //also used to determine if factory was queued
-		Map<Integer, Integer> workers = new HashMap<>(pq.size());
+		Map<Integer, Integer> buildStatus = new HashMap<>(status);   //also used to determine if factory was queued
+		Map<Integer, Integer> workers = new HashMap<>(works);
 		Map<Integer, Long> lastRound = new HashMap<>(pq.size());
 		purchQ = new LinkedList<>();
 		factTime = new HashMap<>(pq.size());

@@ -1,6 +1,7 @@
 // import the API.
 // See xxx for the javadocs.
 import MapTools.*;
+import Utils.*;
 import bc.*;
 import java.util.*;
 
@@ -39,6 +40,14 @@ class Econ {
 					Rollout.factLocs.remove(comp);
 					Rollout.pathDist.remove(comp);
 					Rollout.workNum.remove(comp);
+					Rollout.status.remove(comp);
+					Queue<Tuple<Integer, Integer>> temp = new LinkedList<>();
+					while(!Rollout.purchQ.isEmpty()){
+						Tuple<Integer, Integer> t = Rollout.purchQ.remove();
+						if(t.x != comp)
+							temp.add(t);
+					}
+					Rollout.purchQ = temp;
 					System.out.println("round " + round + ": Built factory in component " + comp + "!");
 				}
 			}
@@ -105,6 +114,14 @@ class Econ {
 			Rollout.factLocs.remove(comp);
 			Rollout.pathDist.remove(comp);
 			Rollout.workNum.remove(comp);
+			Rollout.status.remove(comp);
+			Queue<Tuple<Integer, Integer>> temp = new LinkedList<>();
+			while(!Rollout.purchQ.isEmpty()){
+				Tuple<Integer, Integer> t = Rollout.purchQ.remove();
+				if(t.x != comp)
+					temp.add(t);
+			}
+			Rollout.purchQ = temp;
 		}
 
 		//WORKERS
