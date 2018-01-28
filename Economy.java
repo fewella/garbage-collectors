@@ -79,8 +79,8 @@ class Econ {
 					}
 				}
 			}
-			if( !(round > 100 && Player.factory.size() < 3) && !(round > 300 && totalRocket == 0) && !(round > 500 && totalRocket < 4) || gc.karbonite() > 150) {
-				if(!allreachableKarb && Player.worker.size() == 0 ) {
+			if( !(round > 100 && Player.factory.size() < 3) && !(round > 300 && totalRocket == 0) && !(round > 500 && totalRocket < 4) || gc.karbonite() > 200) {
+				if(!allreachableKarb || Player.worker.size() == Player.factory.size() ) {
 					if (gc.canProduceRobot(u.id(), UnitType.Worker))
 						gc.produceRobot(u.id(), UnitType.Worker);
 				}
