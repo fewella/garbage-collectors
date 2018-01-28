@@ -92,11 +92,12 @@ public class Healer {
                             closestEnemyLoc = notFriends.get(i).location().mapLocation();
                         }
                     }
-                    if ((closestEnemyLoc != null && friends.size() == 0) && myMapLocation.distanceSquaredTo(closestEnemyLoc) < 30) { // If see baddies and don't see friends, run
-                    //if(1==0) {
+                    if (closestEnemyLoc != null) {
+
                         Direction enemyDirOpp = bc.bcDirectionOpposite(myMapLocation.directionTo(closestEnemyLoc));
-                        if(gc.canMove(id, enemyDirOpp))
+                        if(gc.canMove(id, enemyDirOpp)) {
                             gc.moveRobot(id, enemyDirOpp);
+                        }
                     }
                     else {
 

@@ -85,30 +85,30 @@ public class Player {
 		            else
 			            rocket.add(temp);
 	            }
-	            time1 = System.nanoTime();
+	            //time1 = System.nanoTime();
 	            MapAnalysis.turn();
-	            time2 = System.nanoTime();
-	            tMap += (time2-time1);
-	            time1 = time2;
+	            //time2 = System.nanoTime();
+	            //tMap += (time2-time1);
+	            //time1 = time2;
 	            if (Player.gc.planet() == Planet.Earth) {
 		            Econ.turn(gc);
 	            } else
 		            MarsWorker.turn(gc);
-	            time2 = System.nanoTime();
-	            tWorker += (time2-time1);
-	            time1 = time2;
+	            //time2 = System.nanoTime();
+	            //tWorker += (time2-time1);
+	            //time1 = time2;
 	            Rocket.turn(gc);
-	            time2 = System.nanoTime();
-	            tRocket += (time2-time1);
-	            time1 = time2;
+	            //time2 = System.nanoTime();
+	            //tRocket += (time2-time1);
+	            //time1 = time2;
 	            ComBot.turn();
-	            time2 = System.nanoTime();
-	            tCombot += (time2-time1);
-	            time1 = time2;
+	            //time2 = System.nanoTime();
+	            //tCombot += (time2-time1);
+	            //time1 = time2;
 	            Healer.run(gc);
-	            time2 = System.nanoTime();
-	            tHealer += (time2-time1);
-
+	            //time2 = System.nanoTime();
+	            //tHealer += (time2-time1);
+	            /*
 	            if(gc.round() % 250 == 0) {
 		            System.out.println("--------------");
 		            System.out.println("| TIME REPORT:");
@@ -121,7 +121,7 @@ public class Player {
 		            System.out.println("| Remaining: " + gc.getTimeLeftMs() + "ms");
 		            System.out.println("--------------");
 	            }
-
+				*/
 	            gc.nextTurn();
             }
             catch(Exception e){

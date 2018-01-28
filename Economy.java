@@ -7,6 +7,8 @@ import java.util.*;
 
 class Econ {
 	static Direction[] dirs = Direction.values();
+	
+	static boolean allreachableKarb = false;
 
 	//initial factory stuff
 	static int totalRocket = 0;
@@ -16,6 +18,12 @@ class Econ {
 	public static ArrayList<MapLocation> dest = new ArrayList<MapLocation>();
 
 	static void turn(GameController gc) {
+		//System.out.println(dest.size());
+		Team otherTeam = null;
+		if( gc.team() == Team.Blue )
+			otherTeam = Team.Red;
+		else
+			otherTeam = Team.Blue;
 		//overall structure:
 //		loop factories
 //		loop workers
@@ -71,9 +79,12 @@ class Econ {
 					}
 				}
 			}
-			//uncomment when Healers move away
 			if( !(round > 100 && Player.factory.size() < 3) && !(round > 300 && totalRocket == 0) && !(round > 500 && totalRocket < 4) || gc.karbonite() > 150) {
-				if(Player.ranger.size()/6 > Player.healer.size()){
+				if(!allreachableKarb && Player.worker.size() == 0 ) {
+					if (gc.canProduceRobot(u.id(), UnitType.Worker))
+						gc.produceRobot(u.id(), UnitType.Worker);
+				}
+				if(Player.ranger.size()/4 > Player.healer.size()){
 					if (gc.canProduceRobot(u.id(), UnitType.Healer))
 						gc.produceRobot(u.id(), UnitType.Healer);
 				}
@@ -95,7 +106,14 @@ class Econ {
 			for (int i = 0; i < wF.size() && i < 1; i++) {
 				int temp = wF.get(i).id(); 
 				stayRocket.add(temp);
-				if (gc.canLoad(u.id(), temp)) {
+				boolean workinRock = false;
+				for(int c = 0; c < u.structureGarrison().size(); c++) {
+					if(gc.unit(u.structureGarrison().get(c)).unitType() == UnitType.Worker) {
+						workinRock = true;
+						break;
+					}
+				}
+				if (gc.canLoad(u.id(), temp) && !workinRock) {
 					gc.load(u.id(), temp);
 					/*for (int k = 0; k < 8; k++) {
 						if (gc.canReplicate(temp, dirs[k])) {
@@ -128,13 +146,16 @@ class Econ {
 		}
 
 		//WORKERS
+		int unreachable = 0;
 		for(Unit u : Rollout.normWork){
 			if (!u.location().isOnMap()) continue;
 			MapLocation mapLoc = u.location().mapLocation();
 			boolean doneAction = false;
 
 			//normal code
-			VecUnit nearFac = gc.senseNearbyUnitsByType(mapLoc, 4, UnitType.Factory);
+			if( !allreachableKarb )
+				karbBFS(round);
+			VecUnit nearFac = gc.senseNearbyUnitsByType(mapLoc, 9, UnitType.Factory);
 			//if(stayFactory.contains(u.id())) //System.out.println("Staying by factory");
 			if(!stayFactory.contains(u.id()) && !stayRocket.contains(u.id())) {
 				//System.out.println("Normal");
@@ -168,7 +189,7 @@ class Econ {
 				}
 				//if ( nearFac.size() == 0 ) {
 				//System.out.println(dest.size());
-				if( /*(gc.karbonite() < 100) &&*/ dest.size() > 0 ) {
+				if( /*(gc.karbonite() < 100) &&*/ dest.size() > 0 && !allreachableKarb ) {
 					int min = 9999;
 					int min2 = 9999;
 					int dire = -1;
@@ -177,8 +198,11 @@ class Econ {
 						MapLocation temp = u.location().mapLocation().add(dirs[k]);
 						if( temp.getX() < 0 || temp.getX() >= Player.mapEarth.getWidth() || temp.getY() >= Player.mapEarth.getHeight() || temp.getY() < 0 ) continue;
 						int movetemp = karbMapBFS[temp.getY()][temp.getX()];
-						if( movetemp == -1 || movetemp == 9999 )
+						if( movetemp == -1 ) {
+							//System.out.println("-1???");
+							unreachable++;
 							continue;
+						}
 						if(Math.min(movetemp, min) != min) {
 							dire = k;
 							min2 = min;
@@ -242,7 +266,11 @@ class Econ {
 						}
 					}
 				}
-				if (Rollout.purchQ.isEmpty() && Player.worker.size() < 10) {
+				//System.out.println("unreachable" + unreachable);
+				if( unreachable >= dest.size() ) {
+					allreachableKarb = true;
+				}
+				if (Player.worker.size() < 4 || Rollout.purchQ.isEmpty() && Player.worker.size() < 10 && Player.worker.size() < Player.ranger.size() && Player.worker.size() < Player.healer.size()) {
 					for (int k = 0; k < 8; k++) {
 						if (/*round%50==4 && */gc.canReplicate(u.id(), dirs[k])) {
 							//NOTE: ^^^ contains an artificial cap; remove later
@@ -270,6 +298,30 @@ class Econ {
 						if (!dirs[k].equals(avoid)) {
 							if (gc.isMoveReady(u.id()) && gc.canMove(u.id(), dirs[k])) {
 								gc.moveRobot(u.id(), dirs[k]);
+								break;
+							}
+						}
+					}
+				}
+				if( allreachableKarb ) {
+					VecUnit enemy = gc.senseNearbyUnitsByTeam(u.location().mapLocation(), 50, otherTeam);
+					if( enemy.size() > 0 ) {
+						Direction avoid = mapLoc.directionTo(enemy.get(0).location().mapLocation());
+						for (int k = 0; k < 8; k++) {
+							if (!dirs[k].equals(avoid)) {
+								if (gc.isMoveReady(u.id()) && gc.canMove(u.id(), dirs[k])) {
+									gc.moveRobot(u.id(), dirs[k]);
+									//System.out.println("move away");
+									break;
+								}
+							}
+						}
+					}
+					else {
+						for (int k = 0; k < 8; k++) {
+							if (gc.isMoveReady(u.id()) && gc.canMove(u.id(), dirs[k])) {
+								gc.moveRobot(u.id(), dirs[k]);
+								//System.out.println("move away");
 								break;
 							}
 						}
