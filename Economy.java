@@ -67,7 +67,7 @@ class Econ {
 					stayFactory.add(temp);
 					if (u.health() == u.maxHealth()) {
 						for (int k = 0; k < 8; k++) {
-							if (Rollout.factLocs.isEmpty() && /*round%50==4 && */gc.canReplicate(temp, dirs[k])) {
+							if (Rollout.factLocs.isEmpty() && !allreachableKarb && Player.worker.size() < 8 && gc.canReplicate(temp, dirs[k])) {
 								//NOTE: ^^^ contains an artificial cap; remove later
 								gc.replicate(temp, dirs[k]);
 								karb = gc.karbonite();
@@ -79,8 +79,8 @@ class Econ {
 					}
 				}
 			}
-			if( !(round > 100 && Player.factory.size() < 3) && !(round > 300 && totalRocket == 0) && !(round > 500 && totalRocket < 4) || gc.karbonite() > 150) {
-				if(!allreachableKarb && Player.worker.size() == 0 ) {
+			if( !(round > 100 && Player.factory.size() < 3) && !(round > 300 && totalRocket == 0) && !(round > 500 && totalRocket < 4) || gc.karbonite() > 200) {
+				if(!allreachableKarb || Player.worker.size() == Player.factory.size() ) {
 					if (gc.canProduceRobot(u.id(), UnitType.Worker))
 						gc.produceRobot(u.id(), UnitType.Worker);
 				}
@@ -277,7 +277,7 @@ class Econ {
 				}
 				if (Rollout.factLocs.isEmpty() && Player.worker.size() < 4 || Rollout.purchQ.isEmpty() && Player.worker.size() < 10 && Player.worker.size() < Player.ranger.size() && Player.worker.size() < Player.healer.size()) {
 					for (int k = 0; k < 8; k++) {
-						if (/*round%50==4 && */gc.canReplicate(u.id(), dirs[k])) {
+						if (gc.canReplicate(u.id(), dirs[k])) {
 							//NOTE: ^^^ contains an artificial cap; remove later
 							gc.replicate(u.id(), dirs[k]);
 							karb = gc.karbonite();
