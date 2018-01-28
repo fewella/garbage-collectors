@@ -20,13 +20,12 @@ class Econ {
 	static void setup() {
 		if (Player.gc.planet() == Planet.Earth) {
 			//initial factory
-			initLocs = MapAnalysis.initialFactory();
 			initIds = new ArrayList<>(initLocs.size());
 			for(int i = 0; i < initLocs.size(); i++){
 				initIds.add(0);
 			}
 			factoriesLeft = initLocs.size();
-			initBFS = MapAnalysis.BFS(initLocs, false);
+			initBFS = MapTools.Pathing.BFS(initLocs, false);
 		}
 	}
 
@@ -125,122 +124,7 @@ class Econ {
 		}
 
 		//WORKERS
-		Queue<Unit> normalWorker, initWorker;
-		initWorker = new LinkedList<>();
-		if(initAssignments.isEmpty())
-			normalWorker = Player.worker;
-		else {
-			normalWorker = new LinkedList<>();
-			Set<Integer> assignCpy = new HashSet<>();
-			for(int key : initAssignments.keySet()){
-				if(assignCpy.contains(initAssignments.get(key)))
-					assignCpy.add(initAssignments.get(key));
-			}
-			for (Unit u : Player.worker) {
-				if (initAssignments.containsKey(u.id())) {
-					initWorker.add(u);
-					if(assignCpy.contains(initAssignments.get(u.id())))
-						assignCpy.remove(initAssignments.get(u.id()));
-				}
-				else
-					normalWorker.add(u);
-			}
-			for(int group : assignCpy){
-				System.out.println("round " + round + ": All workers destroyed in group #" + group);
-				if(initIds.get(group) == 0)
-					factoriesLeft--;
-				else
-					initIds.set(group, 0);
-				while(initAssignments.containsValue(group))
-					initAssignments.values().removeAll(Collections.singleton(group));
-			}
-		}
-
-		for(Unit u : initWorker) {
-			if (!u.location().isOnMap()) continue;
-			MapLocation mapLoc = u.location().mapLocation();
-			boolean doneAction = false;
-
-			//initial factory strategy:
-			//1. if far, move by matrix
-			//2. else: blueprint/build
-			//3. if possible, replicate/collect karb
-			int group = initAssignments.get(u.id());
-			MapLocation initLoc = initLocs.get(group);
-			Collections.shuffle(Arrays.asList(dirs));    //to prevent workers getting stuck
-			if (!mapLoc.isAdjacentTo(initLoc)) {    //out of reach
-				//1. move
-				if (gc.isMoveReady(u.id())) {
-					Direction minD = Direction.Center;
-					int min = 9999;
-					for (Direction d : dirs) {
-						MapLocation newLoc = mapLoc.add(d);
-						if (newLoc.getX() < 0 || newLoc.getY() < 0 || newLoc.getX() >= gc.startingMap(Planet.Earth).getWidth() || newLoc.getY() >= gc.startingMap(Planet.Earth).getHeight())
-							continue;
-						int newMin = initBFS[newLoc.getY()][newLoc.getX()];
-						if (newMin < min && gc.canMove(u.id(), d)) {
-							min = initBFS[newLoc.getY()][newLoc.getX()];
-							minD = d;
-						}
-					}
-					if (gc.canMove(u.id(), minD))
-						gc.moveRobot(u.id(), minD);
-				}
-			} else {
-				//2. blueprint/build
-				try {
-					Unit f = gc.senseUnitAtLocation(initLoc);
-					//build
-					if (gc.canBuild(u.id(), f.id())) {
-						gc.build(u.id(), f.id());
-						doneAction = true;
-					}
-				} catch (RuntimeException e) {
-					//blueprint
-					if (gc.canBlueprint(u.id(), UnitType.Factory, mapLoc.directionTo(initLoc))) {
-						gc.blueprint(u.id(), UnitType.Factory, mapLoc.directionTo(initLoc));
-						karb = gc.karbonite();
-						doneAction = true;
-						try {
-							Unit f = gc.senseUnitAtLocation(initLoc);
-							initIds.set(group, f.id());
-						} catch (Exception e2) {
-							System.out.println("can not find unit");
-						}
-						factoriesLeft--;
-						System.out.println("round " + round + ": Placed initial factory");
-					}
-				}
-			}
-			//3. replicate/karb
-			if (u.abilityHeat() < 10 && karb > factoriesLeft * bc.bcUnitTypeBlueprintCost(UnitType.Factory) + bc.bcUnitTypeReplicateCost(UnitType.Worker)) {
-				//improve later
-				for (int k = 0; k < 8; k++) {
-					if (gc.canReplicate(u.id(), dirs[k])) {
-						gc.replicate(u.id(), dirs[k]);
-						try {
-							Unit u2 = gc.senseUnitAtLocation(mapLoc.add(dirs[k]));
-							initAssignments.put(u2.id(), group);
-						} catch (Exception e) {
-							System.out.println("can not find unit");
-						}
-						karb = gc.karbonite();
-						break;
-					}
-				}
-			}
-			if (!doneAction) {
-				for (int k = 0; k < 8; k++) {
-					if (gc.canHarvest(u.id(), dirs[k])) {
-						gc.harvest(u.id(), dirs[k]);
-						karb = gc.karbonite();
-						doneAction = true;
-						break;
-					}
-				}
-			}
-		}
-		for(Unit u : normalWorker){
+		for(Unit u : Player.worker){
 			if (!u.location().isOnMap()) continue;
 			MapLocation mapLoc = u.location().mapLocation();
 			boolean doneAction = false;
