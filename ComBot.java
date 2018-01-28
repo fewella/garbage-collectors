@@ -23,7 +23,7 @@ class Snipe {
 }
 
 class ComBot {
-
+	static boolean wonEarth=false;
 	static final int RANGERRANGE = 50;
 	static Direction[] dirs = Direction.values();
 	static Random rng = new Random(7);
@@ -54,6 +54,7 @@ class ComBot {
 	static Planet ourPlanet;
 	static MapLocation[] fact = new MapLocation[20];
 	static int[] enemyComps;
+	static int lastEnemy=100;
 	// [x][y][x][y], second one always moves
 
 	/*
@@ -374,7 +375,8 @@ class ComBot {
 				myK[knights++] = u;
 			}
 		}
-
+		if (enemies!=0) lastEnemy=(int)gc.round();
+		wonEarth=gc.round()>150 && gc.round()-lastEnemy>50;
 		ArrayList<MapLocation> rocks = new ArrayList<MapLocation>(12);
 		int rocketspace = 0;
 		VecUnit mine = gc.myUnits();
