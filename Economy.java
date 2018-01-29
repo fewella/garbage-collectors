@@ -34,7 +34,7 @@ class Econ {
 		long karb = gc.karbonite();    //NOTE: global update after every action that affects it
 		//System.out.println(karb);
 		int madeRocket = 0;
-		HashSet<Integer> stayFactory = new HashSet<Integer>(); //these units will not go out to look for karbonite/make new factories
+		HashSet<Integer> stayFactory = new HashSet<Integer>(); 
 		HashSet<Integer> stayRocket = new HashSet<Integer>();
 		//FACTORIES
 		Map<Integer, Integer> initCpy = new HashMap<>(Rollout.initIds);
@@ -196,16 +196,10 @@ class Econ {
 					if (gc.canBuild(u.id(), nearRock.get(0).id())) {
 						gc.build(u.id(), nearRock.get(0).id());
 						doneAction = true;
-					} /*else if (gc.canLoad(nearRock.get(0).id(), u.id())) {
-						gc.load(nearRock.get(0).id(), u.id());
-						//System.out.println("worker loaded");
-						doneAction = true;
-					}*/
+					} 
 				}
-				//VecUnit nearRan = gc.senseNearbyUnitsByType(mapLoc, 36, UnitType.Ranger);
-				//if ((nearRan.size() > 2 || round > 600) && round > 250 && madeRocket < 3 && Player.rocket.size() < 3 && !doneAction && (nearFac.size() == 0 || round >500) ) {
+
 				if (round > 250 && madeRocket < 3 && Player.rocket.size() < 3 && !doneAction && (nearFac.size() == 0 || round >500) ) {
-					//move from factories
 					//System.out.println("Trying to make rocket");
 					for (int k = 0; k < 8; k++) {
 						if (gc.canBlueprint(u.id(), UnitType.Rocket, dirs[k])) {
@@ -218,9 +212,8 @@ class Econ {
 						}
 					}
 				}
-				//if ( nearFac.size() == 0 ) {
 				//System.out.println(dest.size());
-				if( /*(gc.karbonite() < 100) &&*/ dest.size() > 0 && !allreachableKarb ) {
+				if( dest.size() > 0 && !allreachableKarb ) {
 					int min = 9999;
 					int min2 = 9999;
 					int dire = -1;
@@ -230,7 +223,6 @@ class Econ {
 						if( temp.getX() < 0 || temp.getX() >= Player.mapEarth.getWidth() || temp.getY() >= Player.mapEarth.getHeight() || temp.getY() < 0 ) continue;
 						int movetemp = karbMapBFS[temp.getY()][temp.getX()];
 						if( movetemp == -1 ) {
-							//System.out.println("-1???");
 							unreachable++;
 							continue;
 						}
@@ -253,21 +245,17 @@ class Econ {
 						}
 					}
 					//System.out.println("Min: " + min + " Min2: " + min2);
-					if (min == 0 ) { //0 or 1??
+					if (min == 0 ) { 
 						if(gc.hasUnitAtLocation(mapLoc.add(dirs[dire])) && gc.senseUnitAtLocation(mapLoc.add(dirs[dire])).unitType().equals(UnitType.Factory)) {
 							if (gc.canBuild(u.id(), gc.senseUnitAtLocation(mapLoc.add(dirs[dire])).id()))
 								gc.build(u.id(), gc.senseUnitAtLocation(mapLoc.add(dirs[dire])).id());
 						}
 						else if(gc.canHarvest(u.id(), dirs[dire])) {
-							//if (round > 1 && karb < 300) {
-								//System.out.println("Harvesting karbonite");
-								gc.harvest(u.id(), dirs[dire]);
-								karb = gc.karbonite();
-							//}
+							//System.out.println("Harvesting karbonite");
+							gc.harvest(u.id(), dirs[dire]);
+							karb = gc.karbonite();
 						}
 						else {
-							//Probably make BFS take a hashset??
-							//Remove - it's empty
 							ArrayList<MapLocation> temp = new ArrayList<MapLocation>();
 							for( MapLocation m: dest) {
 								if( !m.equals(u.location().mapLocation().add(dirs[dire])) )
@@ -292,11 +280,9 @@ class Econ {
 						}
 						else {
 							if(gc.canHarvest(u.id(), dirs[dire2])) {
-								//if (round > 1 && karb < 300) {
-									//System.out.println("Harvesting karbonite");
-									gc.harvest(u.id(), dirs[dire]);
-									karb = gc.karbonite();
-								//}
+								//System.out.println("Harvesting karbonite");
+								gc.harvest(u.id(), dirs[dire]);
+								karb = gc.karbonite();
 							}
 						}
 					}
@@ -308,7 +294,6 @@ class Econ {
 				if (Rollout.factLocs.isEmpty() && Player.worker.size() < 4 || Rollout.purchQ.isEmpty() && Player.worker.size() < 8 && Player.worker.size() < Player.ranger.size() && Player.worker.size() < Player.healer.size()) {
 					for (int k = 0; k < 8; k++) {
 						if (gc.canReplicate(u.id(), dirs[k])) {
-							//NOTE: ^^^ contains an artificial cap; remove later
 							gc.replicate(u.id(), dirs[k]);
 							karb = gc.karbonite();
 						}
@@ -324,8 +309,6 @@ class Econ {
 						}
 					}
 				}
-
-				//}
 				if (nearFac.size() != 0) {
 					Unit fac = nearFac.get(0);
 					Direction avoid = mapLoc.directionTo(fac.location().mapLocation());
