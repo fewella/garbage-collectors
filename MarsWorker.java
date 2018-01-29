@@ -27,18 +27,18 @@ public class MarsWorker {
 					}
 				}
 			}*/
-			VecUnit nearRoc = gc.senseNearbyUnitsByType(mapLoc, 4, UnitType.Rocket);
+			/*VecUnit nearRoc = gc.senseNearbyUnitsByType(mapLoc, 4, UnitType.Rocket);
 			if (nearRoc.size() != 0) {
-				/*Direction avoid = mapLoc.directionTo(nearRoc.get(0).location().mapLocation());
+				Direction avoid = mapLoc.directionTo(nearRoc.get(0).location().mapLocation());
 				for (int k = 0; k < 8; k++) {
 					if (!dirs[k].equals(avoid)) {
 						if (gc.isMoveReady(u.id()) && gc.canMove(u.id(), dirs[k]))
 							gc.moveRobot(u.id(), dirs[k]);
 					}
-				}*/
-			}
+				}
+			}*/
 			//move toward karbonite
-			else {
+			//else {
 				if( dest.size() > 0 ) {
 					int min = 9999;
 					int min2 = 9999;
@@ -100,7 +100,7 @@ public class MarsWorker {
 						}
 					}
 				}
-			}
+			//}
 		}
 	}
 	//[y][x] = [height][width]
