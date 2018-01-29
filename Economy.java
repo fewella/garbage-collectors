@@ -100,7 +100,7 @@ class Econ {
 						gc.produceRobot(u.id(), UnitType.Healer);
 				}
 				else{
-					if(4*enemyBFS[mapLoc.getY()][mapLoc.getX()] + gc.round() < 150){
+					if(8*enemyBFS[mapLoc.getY()][mapLoc.getX()] + gc.round() < 160){
 						if (gc.canProduceRobot(u.id(), UnitType.Ranger))
 							gc.produceRobot(u.id(), UnitType.Knight);
 					}
