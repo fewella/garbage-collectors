@@ -95,6 +95,22 @@ public class Rollout {
 		initIds = new HashMap<>(factLocs.size());
 	}
 	public static Tuple<int[][], ArrayList<MapLocation>> turn(Queue<Unit> worker, int[][] karbMapBFS, ArrayList<MapLocation> dest){
+		ArrayList<MapLocation> temp2 = new ArrayList<>(factLocs.size() * 8);
+		for (int key : factLocs.keySet()) {
+			MapLocation loc = factLocs.get(key);
+			for (Direction d2 : Direction.values()) {
+				if (d2 == Direction.Center)
+					continue;
+				MapLocation newLoc2 = loc.add(d2);
+				if (!earth.onMap(newLoc2))
+					continue;
+				if (pass[newLoc2.getY()][newLoc2.getX()] == 0)
+					continue;
+				temp2.add(newLoc2);
+			}
+		}
+		int[][] factBFSnew = Pathing.BFS(temp2, true);
+
 		workNum = new HashMap<>(workNum.size());
 		normWork = new LinkedList<>();
 		safest = new HashMap<>();
@@ -217,14 +233,14 @@ public class Rollout {
 					//1. move
 					if (gc.isMoveReady(u.id())) {
 						Direction minD = Direction.Center;
-						int min = factBFS[mapLoc.getY()][mapLoc.getX()]+1;
+						int min = factBFSnew[mapLoc.getY()][mapLoc.getX()]+1;
 						for (Direction d : dirs) {
 							if(d == Direction.Center)
 								continue;
 							MapLocation newLoc = mapLoc.add(d);
 							if (newLoc.getX() < 0 || newLoc.getY() < 0 || newLoc.getX() >= earth.getWidth() || newLoc.getY() >= earth.getHeight())
 								continue;
-							int newMin = factBFS[newLoc.getY()][newLoc.getX()];
+							int newMin = factBFSnew[newLoc.getY()][newLoc.getX()];
 							if (newMin < min && gc.canMove(u.id(), d)) {
 								min = newMin;
 								minD = d;
@@ -319,7 +335,7 @@ public class Rollout {
 					MapLocation newLoc = mapLoc.add(d);
 					if (newLoc.getX() < 0 || newLoc.getY() < 0 || newLoc.getX() >= earth.getWidth() || newLoc.getY() >= earth.getHeight())
 						continue;
-					int newMin = factBFS[newLoc.getY()][newLoc.getX()];
+					int newMin = factBFSnew[newLoc.getY()][newLoc.getX()];
 					if (newMin < min && gc.canReplicate(u.id(), d)) {
 						min = newMin;
 						minD = d;
@@ -437,7 +453,7 @@ public class Rollout {
 				int newStatus = buildStatus.get(t.x) + wo * (int) (round - temp);
 				double remaining = (ACT_NUM-newStatus)/wo;
 				//TODO: make last rep better
-				if(((factLocs == null || wo < neigh[factLocs.get(t.x).getY()][factLocs.get(t.x).getX()]) && remaining > 10) || (remaining > 0 && pq.isEmpty())){
+				if(((factLocs == null || wo < neigh[factLocs.get(t.x).getY()][factLocs.get(t.x).getX()]) && remaining > Math.max(0, 10-UnionFind.karbonite(Planet.Earth, t.x)/500)) || (remaining > 0 && pq.isEmpty())){
 					lastRound.put(t.x, round);
 					buildStatus.put(t.x, newStatus);
 					workers.put(t.x, wo + 1);
