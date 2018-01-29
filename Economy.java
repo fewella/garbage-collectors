@@ -91,6 +91,7 @@ class Econ {
 				}
 			}
 			if( !(round > 100 && Player.factory.size() < 3) && !(round > 270 && totalRocket == 0) && !(round > 500 && totalRocket < 4) || gc.karbonite() > 200) {
+				if( ComBot.wonEarth && Player.ranger.size() > 4 ) break;
 				if(!allreachableKarb && Player.worker.size() < Player.factory.size() ) {
 					if (gc.canProduceRobot(u.id(), UnitType.Worker))
 						gc.produceRobot(u.id(), UnitType.Worker);
@@ -129,10 +130,21 @@ class Econ {
 						break;
 					}
 				}
-				if (gc.canLoad(u.id(), temp) && !workinRock) {
+				if (gc.canLoad(u.id(), temp) && !workinRock && !ComBot.wonEarth) {
 					gc.load(u.id(), temp);
 				} else {
-					if (gc.canBuild(temp, u.id()))
+					if( ComBot.wonEarth && u.health() == u.maxHealth() ) {
+						Direction avoid = wF.get(i).location().mapLocation().directionTo(u.location().mapLocation());
+						for (int k = 0; k < 8; k++) {
+							if (!dirs[k].equals(avoid)) {
+								if (gc.isMoveReady(temp) && gc.canMove(temp, dirs[k])) {
+									gc.moveRobot(temp, dirs[k]);
+									break;
+								}
+							}
+						}
+					}
+					else if (gc.canBuild(temp, u.id()))
 						gc.build(temp, u.id());
 				}
 			}
@@ -167,7 +179,16 @@ class Econ {
 				karbBFS(round);
 			VecUnit nearFac = gc.senseNearbyUnitsByType(mapLoc, 9, UnitType.Factory);
 			//if(stayFactory.contains(u.id())) //System.out.println("Staying by factory");
-			if(!stayFactory.contains(u.id()) && !stayRocket.contains(u.id())) {
+			if(ComBot.wonEarth) {
+				for (int k = 0; k < 8; k++) {
+					if (gc.canBlueprint(u.id(), UnitType.Rocket, dirs[k])) {
+						gc.blueprint(u.id(), UnitType.Rocket, dirs[k]);
+						karb = gc.karbonite();
+						break;
+					}
+				}
+			}
+			else if(!stayFactory.contains(u.id()) && !stayRocket.contains(u.id())) {
 				//System.out.println("Normal");
 				doneAction = false;
 				VecUnit nearRock = gc.senseNearbyUnitsByType(mapLoc, 2, UnitType.Rocket);
